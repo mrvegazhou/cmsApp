@@ -1,0 +1,95 @@
+postgres:
+  - name: "default"
+    user: "postgres"
+    password: "root"
+    dbname: "app_cms_db"
+    host: "127.0.0.1"
+    port: 5432
+    max_open_conn: 50
+    max_idle_conn: 20
+redis:
+  addr: "localhost:6379"
+  db: 0
+  password: ""
+session:
+  session_name: "gosession_id"
+upload:
+  base_path: "/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile"
+  image_max_size: 10
+  key: "uploadKey123"
+  image_allow_exts:
+    - "jpg"
+    - "png"
+    - "gif"
+    - "webp"
+    - "jpeg"
+    - "bmp"
+base:
+  host: 0.0.0.0
+  port: 3015
+  log_media: "redis"
+email:
+  value: "1667599540@qq.com"
+  password: "uayjvgcipbiyecaj"
+  smtp: "smtp.qq.com"
+  smtp_port: 25
+  pool_size: 4
+  email_name: "admin"
+  send_expir_duration: 5
+  send_email_limit_count: 5
+captcha:
+  click_times: 5
+  count: 3
+  recovery_time: 200
+  interval_time: 10
+  interval_key_time: 5
+slide_captcha:
+  cache_type: "redis"
+  watermark:
+    font_size: 12
+    color: "255,255,255,255"
+    text: ""
+  click_word:
+    font_size: 25
+    font_num: 4
+  block_puzzle:
+    offset: 10
+  cache_expire_sec: 120
+  default_font: "web/resources/fonts/WenQuanZhengHei.ttf"
+  images_path:
+    default_tmp_img_dir: "web/resources/images/jigsaw/slidingBlock"
+    default_bg_img_dir: "web/resources/images/jigsaw/original"
+    default_click_bg_img_dir: "web/resources/images/picClick"
+login:
+  times: 12
+  jwt_secret: "12345"
+  jwt_refresh_secret: "67890"
+  jwt_exp: 8760
+register:
+  limit_duration: 60
+  limit_rate: 5
+rsa:
+  private_str: |
+    -----BEGIN PRIVATE KEY-----
+    MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAMyJDkYZQ1AQ74zF
+    mueYY72kRmVR3tsJVkV0s2SxnVfwflIqL4ECLfgIBR7lhW+dr5dln52xVzcMAdfs
+    E44WI5fWkgTGyg7dDLOdjjiaeet+J5DIn5KI4kAIecCmfIgmbDynTO/5cOAUYd3h
+    ileYXS1XefzoLoq3QN91PGFNvp2xAgMBAAECgYBbr6yIW9bC03Suw/32h2deoX80
+    +AhQY9UaeX/ZSY1g2Fun9WUqDZIRt3akLPst15/Y3CM7Cz4vXOCOrDLv5Ji7MIfI
+    vKg+N4DPCxcLDuRKiJRAigd31bH2hVYvbysisIM5OxArMNsn7OwJ2MYJGDGh/4c3
+    mOGuOg1SGivwnmcwgQJBAO8zn7a4GoI2BuTsVo1Gu3t8Uome4MQhR6O70NWxAfoh
+    SZ5fDxmOjo0GRPbarKa+QZfdkExJePQpIPA3QAEf1BkCQQDa5jM/6z1CJs3M6vUV
+    YR2Hdqcx8vZa5diX8HQv3B3ngVO0niSgLoHEzyxVS1pxHiTHvUQoXu8MPfZl8g6U
+    IQlZAkARnFJg6HMDLSkax4+jvRZmhAOroCfaKL0Wf+hjIzILEVJTN5pr/kPefByt
+    s/HMIOvBW42ZIDuodjK3nMm4i3hZAkBiYdog3UpwA961PdifHkHWU2a71VYR7oHV
+    cBXYONcb6I1FfVo6wAxE91QWlcJ1WrXvK8qJVnmcB/FJSmxw+RQpAkEAosL3Vf4t
+    52apq34hjtLVIAL1xhmP848gGAtSGM9Zt3P+NC4/fwGL8wj9UATWgBwqFE9MTpUx
+    OoRbhIrlO5tUqg==
+    -----END PRIVATE KEY-----
+  public_str: |
+    -----BEGIN PUBLIC KEY-----
+    MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDMiQ5GGUNQEO+MxZrnmGO9pEZl
+    Ud7bCVZFdLNksZ1X8H5SKi+BAi34CAUe5YVvna+XZZ+dsVc3DAHX7BOOFiOX1pIE
+    xsoO3QyznY44mnnrfieQyJ+SiOJACHnApnyIJmw8p0zv+XDgFGHd4YpXmF0tV3n8
+    6C6Kt0DfdTxhTb6dsQIDAQAB
+    -----END PUBLIC KEY-----
