@@ -5,7 +5,6 @@ import (
 	"cmsApp/internal/constant"
 	"cmsApp/internal/dao"
 	"cmsApp/internal/models"
-	"cmsApp/pkg/AES"
 	"cmsApp/pkg/uploader"
 	"cmsApp/pkg/utils/filesystem"
 	"cmsApp/pkg/utils/snowflake"
@@ -62,13 +61,11 @@ func (ser *apiImgsService) GetImageDirs(name string) (string, error) {
 	if name == "" {
 		return basePath + "404.png", nil
 	}
-	// 解密
-	desName := AES.AesDecrypt(configs.App.Upload.Key, name)
-	path, err := ser.GetUploadDirs(desName)
+	path, err := ser.GetUploadDirs(name)
 	if err != nil {
 		return "", err
 	}
-	pathStr, _ := url.JoinPath(basePath, path, desName)
+	pathStr, _ := url.JoinPath(basePath, path, name)
 	return pathStr, nil
 }
 

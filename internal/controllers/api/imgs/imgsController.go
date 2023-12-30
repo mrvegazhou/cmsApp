@@ -1,12 +1,18 @@
 package imgs
 
 import (
+	"cmsApp/configs"
+	"cmsApp/internal/constant"
 	"cmsApp/internal/controllers/api"
 	apiservice "cmsApp/internal/services/api"
+	"cmsApp/pkg/AES"
 	"cmsApp/pkg/utils/arrayx"
 	"cmsApp/pkg/utils/imagex"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 type imgsController struct {
@@ -31,6 +37,23 @@ func (apicon imgsController) show(c *gin.Context) {
 		}
 	}
 	name := c.Param("name")
+	id := c.Query("id")
+	if id == "" {
+		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
+		return
+	}
+	// 解密id id是时间戳
+	desTime := AES.AesDecrypt(configs.App.Upload.Key, id)
+	t1, err := strconv.ParseInt(desTime, 10, 64)
+	if err != nil {
+		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
+		return
+	}
+	t2 := time.Now().Unix()
+	if t2-t1 > 86400 {
+		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
+		return
+	}
 	url, err := apiservice.NewApiImgsService().GetImageDirs(name)
 	if err != nil {
 		apicon.Error(c, err, nil)

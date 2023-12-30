@@ -15,8 +15,6 @@ Encode 系列函数需要注意, 当使用返回两个结果的函数时候,
 package main
 
 import (
-	"bytes"
-	"cmsApp/pkg/watermark"
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/golang/freetype"
@@ -27,7 +25,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"io/ioutil"
+	"time"
 )
 
 func AddWatermarkForImage(oriImage image.Image, uid string) (*image.RGBA, error) {
@@ -128,9 +126,13 @@ func main() {
 	//	panic(err)
 	//}
 
-	fileBytes, _ := ioutil.ReadFile("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/404.png")
-	reader := bytes.NewBuffer(fileBytes)
-	img, _ := watermark.New(reader, ".png", watermark.BottomRight, "avc", "")
-	err := img.WaterMakeDone("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/202.png")
-	fmt.Println(err)
+	//fileBytes, _ := ioutil.ReadFile("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/404.png")
+	//reader := bytes.NewBuffer(fileBytes)
+	//img, _ := watermark.New(reader, ".png", watermark.BottomRight, "avc", "")
+	//err := img.WaterMakeDone("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/202.png")
+	//fmt.Println(err)
+	t1 := time.Now().Unix()     //获取本地现在时间
+	time.Sleep(time.Second * 2) //延时2秒
+	t2 := time.Now().Unix()
+	fmt.Println(t2 - t1)
 }
