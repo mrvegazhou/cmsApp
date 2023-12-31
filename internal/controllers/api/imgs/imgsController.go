@@ -50,6 +50,7 @@ func (apicon imgsController) show(c *gin.Context) {
 		return
 	}
 	t2 := time.Now().Unix()
+	// 大于一天不显示图片
 	if t2-t1 > 86400 {
 		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
 		return

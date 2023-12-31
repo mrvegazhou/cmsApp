@@ -57,7 +57,7 @@ func (ser *apiArticleService) UploadImage(req models.AppArticleUploadImage, user
 		}
 		req.ArticleId = id
 	}
-	_, imgPath, imgName, err := NewApiImgsService().SaveImage(req)
+	_, imgPath, imgName, err := NewApiImgsService().SaveImage(req, userId)
 	if err != nil {
 		return fullPath, imgName, fileName, err
 	}

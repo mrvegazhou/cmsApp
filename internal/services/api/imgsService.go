@@ -10,6 +10,7 @@ import (
 	"cmsApp/pkg/utils/snowflake"
 	"cmsApp/pkg/utils/strings"
 	"errors"
+	_ "image/jpeg"
 	"net/url"
 	"path"
 	str "strings"
@@ -69,10 +70,11 @@ func (ser *apiImgsService) GetImageDirs(name string) (string, error) {
 	return pathStr, nil
 }
 
-func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage) (uint64, string, string, error) {
+func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, userId uint64) (uint64, string, string, error) {
 	basePath := configs.App.Upload.BasePath
 	imageName := snowflake.GenIDString()
-	ext := path.Ext(articleImg.File.Filename)
+	oriFileName := articleImg.File.Filename
+	ext := path.Ext(oriFileName)
 	imageName = imageName + ext
 	dstPath, err := ser.GetUploadDirs(imageName)
 	if err != nil {
@@ -81,7 +83,7 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage) (u
 	stor := uploader.LocalStorage{}
 	// 完整路径
 	pathStr, _ := url.JoinPath(basePath, dstPath)
-	filePath, err := stor.Save(articleImg.File, pathStr, imageName)
+	filePath, width, height, err := stor.Save(articleImg.File, pathStr, imageName)
 	if err != nil {
 		stor.RomovePath(basePath, dstPath)
 		return 0, pathStr, imageName, errors.New(constant.IMAGE_UPLOAD_ERR)
@@ -91,9 +93,13 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage) (u
 	img.UpdateTime = time.Now()
 	img.Path = pathStr
 	img.Name = imageName
+	img.Tags = oriFileName
 	img.Type = 1
+	img.Width = width
+	img.Height = height
 	img.Tags = articleImg.Tags
 	img.ResourceId = articleImg.ArticleId
+	img.UserId = userId
 	imgId, err := ser.Dao.CreateImage(img)
 	if err != nil {
 		stor.RomoveFile(filePath)
@@ -101,4 +107,8 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage) (u
 		return 0, pathStr, imageName, errors.New(constant.IMAGE_UPLOAD_ERR)
 	}
 	return imgId, pathStr, imageName, nil
+}
+
+func (ser *apiImgsService) GetImagesByUserId() {
+
 }

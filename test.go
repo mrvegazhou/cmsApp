@@ -25,7 +25,8 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"time"
+	_ "image/jpeg"
+	"os"
 )
 
 func AddWatermarkForImage(oriImage image.Image, uid string) (*image.RGBA, error) {
@@ -131,8 +132,19 @@ func main() {
 	//img, _ := watermark.New(reader, ".png", watermark.BottomRight, "avc", "")
 	//err := img.WaterMakeDone("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/202.png")
 	//fmt.Println(err)
-	t1 := time.Now().Unix()     //获取本地现在时间
-	time.Sleep(time.Second * 2) //延时2秒
-	t2 := time.Now().Unix()
-	fmt.Println(t2 - t1)
+	//t1 := time.Now().Unix()     //获取本地现在时间
+	//time.Sleep(time.Second * 2) //延时2秒
+	//t2 := time.Now().Unix()
+	//fmt.Println(t2 - t1)
+
+	if reader, err := os.Open("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/404.png"); err == nil {
+		defer reader.Close()
+		im, _, err := image.DecodeConfig(reader)
+		if err != nil {
+			fmt.Println(os.Stderr, err)
+		}
+		fmt.Printf("%d %d\n", im.Width, im.Height)
+	} else {
+		fmt.Println("Impossible to open the file:", err)
+	}
 }

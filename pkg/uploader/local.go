@@ -1,6 +1,7 @@
 package uploader
 
 import (
+	"image"
 	"io"
 	"mime/multipart"
 	"os"
@@ -10,11 +11,14 @@ import (
 type LocalStorage struct {
 }
 
-func (stor LocalStorage) Save(file *multipart.FileHeader, dst string, fileName string) (string, error) {
+func (stor LocalStorage) Save(file *multipart.FileHeader, dst string, fileName string) (string, int, int, error) {
 
 	var (
 		filePath string
 	)
+	width := 0
+	height := 0
+
 	name := file.Filename
 	if fileName != "" {
 		name = fileName
@@ -23,23 +27,29 @@ func (stor LocalStorage) Save(file *multipart.FileHeader, dst string, fileName s
 
 	src, err := file.Open()
 	if err != nil {
-		return filePath, err
+		return filePath, width, height, err
 	}
 	defer src.Close()
 
+	im, _, err := image.DecodeConfig(src)
+	if err == nil {
+		width = im.Width
+		height = im.Height
+	}
+
 	err = os.MkdirAll(dst, os.ModePerm)
 	if err != nil {
-		return filePath, err
+		return filePath, width, height, err
 	}
 
 	out, err := os.Create(filePath)
 	if err != nil {
-		return filePath, err
+		return filePath, width, height, err
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, src)
-	return filePath, err
+	return filePath, width, height, err
 }
 
 // 检查指定路径是否为文件夹
