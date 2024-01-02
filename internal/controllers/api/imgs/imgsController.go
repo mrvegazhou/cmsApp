@@ -24,7 +24,23 @@ func NewImgsController() imgsController {
 }
 
 func (con imgsController) Routes(rg *gin.RouterGroup) {
-	rg.GET("/static/:name", con.show)
+	rg.GET("/static/:id", con.show)
+	rg.GET("/static/p/:id", con.personalShow)
+}
+
+func (apicon imgsController) personalShow(c *gin.Context) {
+	id := c.Param("id")
+	url, err := apiservice.NewApiImgsService().GetImageDirs(id)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	err = imagex.CheckImage(url)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	c.File(url)
 }
 
 func (apicon imgsController) show(c *gin.Context) {
@@ -36,14 +52,14 @@ func (apicon imgsController) show(c *gin.Context) {
 			return
 		}
 	}
-	name := c.Param("name")
-	id := c.Query("id")
-	if id == "" {
+	id := c.Param("id")
+	token := c.Query("t")
+	if token == "" {
 		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
 		return
 	}
 	// 解密id id是时间戳
-	desTime := AES.AesDecrypt(configs.App.Upload.Key, id)
+	desTime := AES.AesDecrypt(configs.App.Upload.Key, token)
 	t1, err := strconv.ParseInt(desTime, 10, 64)
 	if err != nil {
 		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
@@ -55,7 +71,7 @@ func (apicon imgsController) show(c *gin.Context) {
 		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
 		return
 	}
-	url, err := apiservice.NewApiImgsService().GetImageDirs(name)
+	url, err := apiservice.NewApiImgsService().GetImageDirs(id)
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return

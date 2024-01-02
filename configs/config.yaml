@@ -28,6 +28,7 @@ base:
   host: 0.0.0.0
   port: 3015
   log_media: "redis"
+  page_size: 20
 email:
   value: "1667599540@qq.com"
   password: "uayjvgcipbiyecaj"

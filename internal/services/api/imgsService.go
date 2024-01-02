@@ -10,6 +10,7 @@ import (
 	"cmsApp/pkg/utils/snowflake"
 	"cmsApp/pkg/utils/strings"
 	"errors"
+	"fmt"
 	_ "image/jpeg"
 	"net/url"
 	"path"
@@ -72,6 +73,7 @@ func (ser *apiImgsService) GetImageDirs(name string) (string, error) {
 
 func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, userId uint64) (uint64, string, string, error) {
 	basePath := configs.App.Upload.BasePath
+	// 重新生成图片名称
 	imageName := snowflake.GenIDString()
 	oriFileName := articleImg.File.Filename
 	ext := path.Ext(oriFileName)
@@ -81,9 +83,10 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, us
 		return 0, "", imageName, errors.New(constant.UPLOAD_DIR_ERR)
 	}
 	stor := uploader.LocalStorage{}
-	// 完整路径
+	// 上传的完整路径
 	pathStr, _ := url.JoinPath(basePath, dstPath)
 	filePath, width, height, err := stor.Save(articleImg.File, pathStr, imageName)
+	fmt.Println(filePath, width, height, err, "==s===")
 	if err != nil {
 		stor.RomovePath(basePath, dstPath)
 		return 0, pathStr, imageName, errors.New(constant.IMAGE_UPLOAD_ERR)
@@ -109,6 +112,20 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, us
 	return imgId, pathStr, imageName, nil
 }
 
-func (ser *apiImgsService) GetImagesByUserId() {
-
+func (ser *apiImgsService) GetImagesByUserId(userId uint64, page int, pageSize int) ([]models.ImgsListResp, int, int, error) {
+	conds := make(map[string][]interface{})
+	exp := []interface{}{"=", userId}
+	conds["user_id"] = exp
+	resList, page, totalPage, err := ser.Dao.GetImgs(conds, page, pageSize)
+	imgList := []models.ImgsListResp{}
+	for i := 0; i < len(resList); i++ {
+		obj := models.ImgsListResp{}
+		obj.Id = resList[i].Id
+		obj.Name = resList[i].Name
+		obj.Tags = resList[i].Tags
+		obj.Width = resList[i].Width
+		obj.Height = resList[i].Height
+		imgList = append(imgList, obj)
+	}
+	return imgList, page, totalPage, err
 }

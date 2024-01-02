@@ -3,7 +3,6 @@ package dao
 import (
 	"cmsApp/internal/models"
 	"cmsApp/pkg/postgresqlx"
-	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -60,7 +59,6 @@ func (dao *AppArticleLikeDao) DoArticleUnlike(articleId, userId uint64) error {
 }
 
 func (dao *AppArticleLikeDao) CheckArticleLike(articleId, userId uint64) (art models.AppArticleLike, err error) {
-	fmt.Println(articleId, userId, "---articleId, userId---")
 	err = dao.DB.Where("article_id = ? and user_id = ?", articleId, userId).Take(&art).Error
 	return
 }

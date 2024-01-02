@@ -50,7 +50,6 @@ func (ser *apiArticleService) UploadImage(req models.AppArticleUploadImage, user
 		article.AuthorId = userId
 		article.CreateTime = time.Now()
 		article.UpdateTime = time.Now()
-		//article.DeleteTime = "1970-01-01 00:00:00"
 		id, err := ser.Dao.CreateAppArticle(article)
 		if err != nil {
 			return fullPath, imgName, fileName, errors.New(constant.ARTICLE_SAVE_ERR)

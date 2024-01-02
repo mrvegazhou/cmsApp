@@ -125,6 +125,7 @@ type BaseConf struct {
 	Port     string `yaml:"port"`
 	Host     string `yaml:"host"`
 	LogMedia string `yaml:"log_media"`
+	PageSize int    `yaml:"page_size"`
 }
 
 var App *AppConf

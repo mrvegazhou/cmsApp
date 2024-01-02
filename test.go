@@ -26,7 +26,7 @@ import (
 	"image/color"
 	"image/draw"
 	_ "image/jpeg"
-	"os"
+	"math"
 )
 
 func AddWatermarkForImage(oriImage image.Image, uid string) (*image.RGBA, error) {
@@ -136,15 +136,5 @@ func main() {
 	//time.Sleep(time.Second * 2) //延时2秒
 	//t2 := time.Now().Unix()
 	//fmt.Println(t2 - t1)
-
-	if reader, err := os.Open("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/404.png"); err == nil {
-		defer reader.Close()
-		im, _, err := image.DecodeConfig(reader)
-		if err != nil {
-			fmt.Println(os.Stderr, err)
-		}
-		fmt.Printf("%d %d\n", im.Width, im.Height)
-	} else {
-		fmt.Println("Impossible to open the file:", err)
-	}
+	fmt.Println(math.Ceil(float64(9) / float64(4)))
 }

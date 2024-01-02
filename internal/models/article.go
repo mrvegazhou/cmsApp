@@ -37,6 +37,10 @@ type AppArticleUploadImage struct {
 	Tags      string                `form:"tags" label:"文件标签"`
 }
 
+type AppArticleImgsReq struct {
+	Page int `form:"page" label:"页码" json:"page"`
+}
+
 func (article *AppArticle) TableName() string {
 	return "cms_app.app_article"
 }

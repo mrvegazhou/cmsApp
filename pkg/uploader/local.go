@@ -2,6 +2,9 @@ package uploader
 
 import (
 	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"mime/multipart"
 	"os"
@@ -25,17 +28,11 @@ func (stor LocalStorage) Save(file *multipart.FileHeader, dst string, fileName s
 	}
 	filePath = dst + string(os.PathSeparator) + name
 
-	src, err := file.Open()
+	srcFile, err := file.Open()
 	if err != nil {
 		return filePath, width, height, err
 	}
-	defer src.Close()
-
-	im, _, err := image.DecodeConfig(src)
-	if err == nil {
-		width = im.Width
-		height = im.Height
-	}
+	defer srcFile.Close()
 
 	err = os.MkdirAll(dst, os.ModePerm)
 	if err != nil {
@@ -48,7 +45,15 @@ func (stor LocalStorage) Save(file *multipart.FileHeader, dst string, fileName s
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, src)
+	_, err = io.Copy(out, srcFile)
+
+	// seek到起点 获取图片长宽
+	srcFile.Seek(0, 0)
+	im, _, err := image.DecodeConfig(srcFile)
+	if err == nil {
+		width = im.Width
+		height = im.Height
+	}
 	return filePath, width, height, err
 }
 
