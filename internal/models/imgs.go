@@ -36,6 +36,10 @@ type ImgsListResp struct {
 	CreateTime time.Time `label:"创建时间" json:"createTime"`
 }
 
+type ImgReq struct {
+	Name string `label:"图片名称" json:"name"`
+}
+
 func (img *Imgs) TableName() string {
 	return "cms_app.app_imgs"
 }

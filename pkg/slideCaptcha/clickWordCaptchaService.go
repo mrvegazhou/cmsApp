@@ -145,7 +145,7 @@ func (c *ClickWordCaptchaService) Check(token string, pointJson string) error {
 	}
 
 	// 解密前端传递过来的数据
-	userPointJson := AES.AesDecrypt(pointJson, cachePoint[0].SecretKey)
+	userPointJson := AES.Decrypt(pointJson, cachePoint[0].SecretKey)
 
 	err = json.Unmarshal([]byte(userPointJson), &userPoint)
 

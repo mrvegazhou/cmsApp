@@ -20,7 +20,6 @@ func (con articleController) Routes(rg *gin.RouterGroup) {
 	rg.POST("/info", con.info)
 	rg.POST("/uploadImage", con.uploadImage)
 	rg.POST("/saveArticleDraft", con.saveArticleDraft)
-	rg.POST("/netImgList", con.netImgList)
 }
 
 func (apicon articleController) info(c *gin.Context) {
@@ -77,25 +76,4 @@ func (apicon articleController) uploadImage(c *gin.Context) {
 		return
 	}
 	apicon.Success(c, map[string]interface{}{"imageName": imgName, "fileName": fileName})
-}
-
-func (apicon articleController) netImgList(c *gin.Context) {
-	var (
-		err error
-		req models.AppArticleImgsReq
-	)
-	err = apicon.FormBind(c, &req)
-	if err != nil {
-		apicon.Error(c, err, nil)
-		return
-	}
-	userId := uint64(3)
-	page := req.Page
-	pageSize := 8
-	imgList, page, totalPage, err := apiservice.NewApiImgsService().GetImagesByUserId(userId, page, pageSize)
-	if err != nil {
-		apicon.Error(c, err, nil)
-		return
-	}
-	apicon.Success(c, map[string]interface{}{"imgList": imgList, "page": page, "totalPage": totalPage})
 }

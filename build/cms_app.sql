@@ -412,3 +412,9 @@ ALTER TABLE "cms_app"."site_config" ADD CONSTRAINT "sys_config_pkey" PRIMARY KEY
 -- Primary Key structure for table site_info
 -- ----------------------------
 ALTER TABLE "cms_app"."site_info" ADD CONSTRAINT "app_introduce_pkey" PRIMARY KEY ("id");
+
+CREATE INDEX idx_name ON "cms_app"."app_imgs" (name);
+CREATE INDEX idx_email ON "cms_app"."app_user" (email);
+CREATE INDEX idx_name_temp ON "cms_app"."app_imgs_temp" (name);
+
+

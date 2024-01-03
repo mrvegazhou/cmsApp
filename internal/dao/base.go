@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"cmsApp/pkg/utils/arrayx"
+	"fmt"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 	"math"
@@ -12,9 +14,10 @@ type BaseDao struct {
 }
 
 func (dao *BaseDao) GetFields(obj interface{}) []string {
-	var fields []string
 	getType := reflect.TypeOf(obj)
-	for i := 0; i < getType.NumField(); i++ {
+	l := getType.NumField()
+	fields := make([]string, l)
+	for i := 0; i < l; i++ {
 		fieldType := getType.Field(i)
 		fields[i] = fieldType.Name
 	}
@@ -57,4 +60,20 @@ func (dao *BaseDao) Order(sort string) func(db *gorm.DB) *gorm.DB {
 		}
 		return db.Order(sort)
 	}
+}
+
+func (dao *BaseDao) ConditionWhere(Db *gorm.DB, conditions map[string][]interface{}, objField interface{}) *gorm.DB {
+	fields := dao.GetFields(objField)
+	for key, cond := range conditions {
+		if reflect.TypeOf(cond).Kind() == reflect.Slice && len(cond) >= 2 {
+			op := cond[0]
+			val := cond[1]
+			if arrayx.IsContain(fields, key) {
+				opStr := fmt.Sprintf("%s %s", key, op)
+				Db = Db.Where(opStr, val)
+				fmt.Println(opStr, Db, "---d---")
+			}
+		}
+	}
+	return Db
 }

@@ -9,6 +9,7 @@ import (
 
 type ImgsTempDao struct {
 	DB *gorm.DB
+	BaseDao
 }
 
 var (

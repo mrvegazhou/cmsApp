@@ -10,7 +10,6 @@ import (
 	"cmsApp/pkg/utils/snowflake"
 	"cmsApp/pkg/utils/strings"
 	"errors"
-	"fmt"
 	_ "image/jpeg"
 	"net/url"
 	"path"
@@ -20,7 +19,8 @@ import (
 )
 
 type apiImgsService struct {
-	Dao *dao.ImgsDao
+	Dao    *dao.ImgsDao
+	TmpDao *dao.ImgsTempDao
 }
 
 var (
@@ -86,12 +86,12 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, us
 	// 上传的完整路径
 	pathStr, _ := url.JoinPath(basePath, dstPath)
 	filePath, width, height, err := stor.Save(articleImg.File, pathStr, imageName)
-	fmt.Println(filePath, width, height, err, "==s===")
 	if err != nil {
 		stor.RomovePath(basePath, dstPath)
 		return 0, pathStr, imageName, errors.New(constant.IMAGE_UPLOAD_ERR)
 	}
-	img := models.Imgs{}
+	// 存储到临时图片表
+	img := models.ImgsTemp{}
 	img.CreateTime = time.Now()
 	img.UpdateTime = time.Now()
 	img.Path = pathStr
@@ -103,7 +103,7 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, us
 	img.Tags = articleImg.Tags
 	img.ResourceId = articleImg.ArticleId
 	img.UserId = userId
-	imgId, err := ser.Dao.CreateImage(img)
+	imgId, err := ser.TmpDao.CreateImgsTemp(img)
 	if err != nil {
 		stor.RomoveFile(filePath)
 		stor.RomovePath(basePath, dstPath)
@@ -128,4 +128,12 @@ func (ser *apiImgsService) GetImagesByUserId(userId uint64, page int, pageSize i
 		imgList = append(imgList, obj)
 	}
 	return imgList, page, totalPage, err
+}
+
+func (ser *apiImgsService) DeleteImage(name string) (err error) {
+	conds := make(map[string][]interface{})
+	exp := []interface{}{"=", name}
+	conds["name"] = exp
+	err = ser.Dao.DeleteImage(conds)
+	return
 }

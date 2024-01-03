@@ -49,7 +49,7 @@ func (b *BlockPuzzleCaptchaService) Check(token string, pointJson string) error 
 	}
 
 	// 解密前端传递过来的数据
-	userPointJson := AES.AesDecrypt(pointJson, cachePoint.SecretKey)
+	userPointJson := AES.Decrypt(pointJson, cachePoint.SecretKey)
 
 	err = json.Unmarshal([]byte(userPointJson), userPoint)
 

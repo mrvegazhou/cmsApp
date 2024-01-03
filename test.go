@@ -15,6 +15,7 @@ Encode 系列函数需要注意, 当使用返回两个结果的函数时候,
 package main
 
 import (
+	"cmsApp/pkg/AES"
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/golang/freetype"
@@ -26,7 +27,7 @@ import (
 	"image/color"
 	"image/draw"
 	_ "image/jpeg"
-	"math"
+	"time"
 )
 
 func AddWatermarkForImage(oriImage image.Image, uid string) (*image.RGBA, error) {
@@ -136,5 +137,14 @@ func main() {
 	//time.Sleep(time.Second * 2) //延时2秒
 	//t2 := time.Now().Unix()
 	//fmt.Println(t2 - t1)
-	fmt.Println(math.Ceil(float64(9) / float64(4)))
+	t1 := time.Now()
+	timeTemplate1 := "2006-01-02 15:04:05"
+	ttt := t1.Format(timeTemplate1)
+	fmt.Println(t1.Format(timeTemplate1))
+
+	stamp, _ := time.ParseInLocation(timeTemplate1, ttt, time.Local) //使用parseInLocation将字符串格式化返回本地时区时间
+	fmt.Println(stamp.Unix(), "--t---")
+
+	fmt.Println(t1.String())
+	fmt.Println(AES.Encrypt(t1.String(), "uploadKey123"))
 }

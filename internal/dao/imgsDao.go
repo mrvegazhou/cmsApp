@@ -3,10 +3,7 @@ package dao
 import (
 	"cmsApp/internal/models"
 	"cmsApp/pkg/postgresqlx"
-	"cmsApp/pkg/utils/arrayx"
-	"fmt"
 	"gorm.io/gorm"
-	"reflect"
 	"sync"
 )
 
@@ -42,18 +39,8 @@ func (dao *ImgsDao) CreateImage(image models.Imgs) (uint64, error) {
 func (dao *ImgsDao) GetImgs(conditions map[string][]interface{}, pageParam int, pageSizeParam int) ([]models.Imgs, int, int, error) {
 	imgs := []models.Imgs{}
 	Db := dao.DB
-	fields := dao.GetFields(models.ImgsFields{})
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ImgsFields{})
 
-	for key, cond := range conditions {
-		if reflect.TypeOf(cond).Kind() == reflect.Slice && len(cond) >= 2 {
-			op := cond[0]
-			val := cond[1]
-			if arrayx.IsContain(fields, key) {
-				opStr := fmt.Sprintf("%s %s", key, op)
-				Db = Db.Where(opStr, val)
-			}
-		}
-	}
 	total, err := dao.GetImgsTotal(conditions)
 	if err != nil {
 		return imgs, 1, 0, err
@@ -67,20 +54,19 @@ func (dao *ImgsDao) GetImgs(conditions map[string][]interface{}, pageParam int, 
 }
 
 func (dao *ImgsDao) GetImgsTotal(conditions map[string][]interface{}) (int64, error) {
-	Db := dao.DB
-	fields := dao.GetFields(models.ImgsFields{})
+	Db := dao.DB.Model(&models.Imgs{})
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ImgsFields{})
+	var count int64
+	err := Db.Count(&count).Error
+	return count, err
+}
 
-	for key, cond := range conditions {
-		if reflect.TypeOf(cond).Kind() == reflect.Slice && len(cond) >= 2 {
-			op := cond[0]
-			val := cond[1]
-			if arrayx.IsContain(fields, key) {
-				opStr := fmt.Sprintf("%s %s", key, op)
-				Db = Db.Where(opStr, val)
-			}
-		}
+func (dao *ImgsDao) DeleteImage(conditions map[string][]interface{}) error {
+	Db := dao.DB
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ImgsFields{})
+	err := Db.Delete(&models.Imgs{}).Error
+	if err != nil {
+		return err
 	}
-	var count *int64
-	err := Db.Scopes(dao.Order("create_time desc")).Count(count).Error
-	return *count, err
+	return nil
 }

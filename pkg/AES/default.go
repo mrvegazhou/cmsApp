@@ -3,62 +3,83 @@ package AES
 import (
 	"bytes"
 	"crypto/aes"
-	"encoding/base64"
+	"crypto/cipher"
+	"crypto/md5"
+	"crypto/rand"
+	b64 "encoding/base64"
+	"io"
 )
 
-func AesEncrypt(data, key string) string {
-	if key == "" {
-		return data
-	}
-	return base64.StdEncoding.EncodeToString(AesEncryptToBytes([]byte(data), []byte(key)))
-}
-
-func AesEncryptToBytes(data, key []byte) []byte {
-	block, _ := aes.NewCipher(key)
-	data = PKCS5Padding(data, block.BlockSize())
-	decrypted := make([]byte, len(data))
-	size := block.BlockSize()
-
-	for bs, be := 0, size; bs < len(data); bs, be = bs+size, be+size {
-		block.Encrypt(decrypted[bs:be], data[bs:be])
+// Encrypts text with the passphrase
+func Encrypt(text string, passphrase string) string {
+	salt := make([]byte, 8)
+	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
+		panic(err.Error())
 	}
 
-	return decrypted
-}
+	key, iv := __DeriveKeyAndIv(passphrase, string(salt))
 
-func AesDecrypt(point string, key string) string {
-	encryptBytes, _ := base64.StdEncoding.DecodeString(point)
-	info := AESDecryptECB(encryptBytes, []byte(key))
-	return string(info)
-}
-
-func AESDecryptECB(data, key []byte) []byte {
-	block, _ := aes.NewCipher(key)
-	decrypted := make([]byte, len(data))
-	size := block.BlockSize()
-
-	for bs, be := 0, size; bs < len(data); bs, be = bs+size, be+size {
-		block.Decrypt(decrypted[bs:be], data[bs:be])
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		panic(err)
 	}
 
-	return PKCS5UnPadding(decrypted)
+	pad := __PKCS7Padding([]byte(text), block.BlockSize())
+	ecb := cipher.NewCBCEncrypter(block, []byte(iv))
+	encrypted := make([]byte, len(pad))
+	ecb.CryptBlocks(encrypted, pad)
+
+	return b64.StdEncoding.EncodeToString([]byte("Salted__" + string(salt) + string(encrypted)))
 }
 
-// PKCS5UnPadding 删除pks5填充的尾部数据
-func PKCS5UnPadding(origData []byte) []byte {
-	// 1. 计算数据的总长度
-	length := len(origData)
-	if length == 0 {
-		return origData
+// Decrypts encrypted text with the passphrase
+func Decrypt(encrypted string, passphrase string) string {
+	ct, _ := b64.StdEncoding.DecodeString(encrypted)
+	if len(ct) < 16 || string(ct[:8]) != "Salted__" {
+		return ""
 	}
-	// 2. 根据填充的字节值得到填充的次数
-	number := int(origData[length-1])
-	// 3. 将尾部填充的number个字节去掉
-	return origData[:(length - number)]
+
+	salt := ct[8:16]
+	ct = ct[16:]
+	key, iv := __DeriveKeyAndIv(passphrase, string(salt))
+
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		panic(err)
+	}
+
+	cbc := cipher.NewCBCDecrypter(block, []byte(iv))
+	dst := make([]byte, len(ct))
+	cbc.CryptBlocks(dst, ct)
+
+	return string(__PKCS7Trimming(dst))
 }
 
-func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
+func __PKCS7Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(ciphertext, padtext...)
+}
+
+func __PKCS7Trimming(encrypt []byte) []byte {
+	padding := encrypt[len(encrypt)-1]
+	return encrypt[:len(encrypt)-int(padding)]
+}
+
+func __DeriveKeyAndIv(passphrase string, salt string) (string, string) {
+	salted := ""
+	dI := ""
+
+	for len(salted) < 48 {
+		md := md5.New()
+		md.Write([]byte(dI + passphrase + salt))
+		dM := md.Sum(nil)
+		dI = string(dM[:16])
+		salted = salted + dI
+	}
+
+	key := salted[0:32]
+	iv := salted[32:48]
+
+	return key, iv
 }
