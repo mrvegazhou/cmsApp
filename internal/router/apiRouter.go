@@ -49,6 +49,7 @@ func (ar ApiRouter) AddRouters() {
 		{
 			ar.addRouter(article.NewArticleController(), apiArticleRouter)
 			ar.addRouter(article.NewArticleToolBarController(), apiArticleRouter)
+			ar.addRouter(article.NewArticleTypeController(), apiArticleRouter)
 		}
 	}
 	{

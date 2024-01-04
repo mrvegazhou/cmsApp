@@ -18,8 +18,7 @@ func (dao *BaseDao) GetFields(obj interface{}) []string {
 	l := getType.NumField()
 	fields := make([]string, l)
 	for i := 0; i < l; i++ {
-		fieldType := getType.Field(i)
-		fields[i] = fieldType.Name
+		fields[i] = getType.Field(i).Tag.Get("name")
 	}
 	return fields
 }
@@ -71,7 +70,6 @@ func (dao *BaseDao) ConditionWhere(Db *gorm.DB, conditions map[string][]interfac
 			if arrayx.IsContain(fields, key) {
 				opStr := fmt.Sprintf("%s %s", key, op)
 				Db = Db.Where(opStr, val)
-				fmt.Println(opStr, Db, "---d---")
 			}
 		}
 	}

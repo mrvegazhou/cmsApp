@@ -12,18 +12,18 @@ type Imgs struct {
 }
 
 type ImgsFields struct {
-	Id   uint64 `gorm:"column:id;primary_key" json:"id" form:"id"`
-	Name string `gorm:"column:name" json:"name" form:"name"`
-	Path string `gorm:"column:path" json:"path" form:"path"`
+	Id   uint64 `gorm:"column:id;primary_key" json:"id" form:"id" name:"id"`
+	Name string `gorm:"column:name" json:"name" form:"name" name:"name"`
+	Path string `gorm:"column:path" json:"path" form:"path" name:"path"`
 	// 1. 文章图片
-	Type       uint      `gorm:"column:type" json:"type" form:"type"`
-	Tags       string    `gorm:"column:tags" json:"tags" form:"tags"`
-	Width      int       `gorm:"column:width" json:"widht" form:"widht"`
-	Height     int       `gorm:"column:height" json:"height" form:"height"`
-	UserId     uint64    `gorm:"column:user_id" json:"userId" form:"userId"`
-	ResourceId uint64    `gorm:"column:resource_id" json:"resourceId" form:"resourceId"`
-	CreateTime time.Time `gorm:"autoCreateTime;column:create_time;<-:create" json:"createTime"`
-	UpdateTime time.Time `gorm:"column:update_time" json:"updateTime"`
+	Type       uint      `gorm:"column:type" json:"type" form:"type" name:"type"`
+	Tags       string    `gorm:"column:tags" json:"tags" form:"tags" name:"tags"`
+	Width      int       `gorm:"column:width" json:"widht" form:"widht" name:"width"`
+	Height     int       `gorm:"column:height" json:"height" form:"height" name:"height"`
+	UserId     uint64    `gorm:"column:user_id" json:"userId" form:"userId" name:"user_id"`
+	ResourceId uint64    `gorm:"column:resource_id" json:"resourceId" form:"resourceId" name:"resource_id"`
+	CreateTime time.Time `gorm:"autoCreateTime;column:create_time;<-:create" json:"createTime" name:"create_time"`
+	UpdateTime time.Time `gorm:"column:update_time" json:"updateTime" name:"update_time"`
 }
 
 type ImgsListResp struct {

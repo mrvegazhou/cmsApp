@@ -13,15 +13,15 @@ type ImgsDao struct {
 }
 
 var (
-	instanceImgs *ImgsDao
-	onceImgsDao  sync.Once
+	instanceImgsDao *ImgsDao
+	onceImgsDao     sync.Once
 )
 
 func NewImgsDao() *ImgsDao {
 	onceImgsDao.Do(func() {
-		instanceImgs = &ImgsDao{DB: postgresqlx.GetDB(&models.Imgs{})}
+		instanceImgsDao = &ImgsDao{DB: postgresqlx.GetDB(&models.Imgs{})}
 	})
-	return instanceImgs
+	return instanceImgsDao
 }
 
 func (dao *ImgsDao) GetImgInfo(conditions map[string]interface{}) (info models.Imgs, err error) {
