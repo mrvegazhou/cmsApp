@@ -31,7 +31,8 @@ var (
 func NewApiImgsService() *apiImgsService {
 	onceApiImgsService.Do(func() {
 		instanceApiImgsService = &apiImgsService{
-			Dao: dao.NewImgsDao(),
+			Dao:    dao.NewImgsDao(),
+			TmpDao: dao.NewImgsTempDao(),
 		}
 	})
 	return instanceApiImgsService
@@ -97,7 +98,7 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, us
 	img.Path = pathStr
 	img.Name = imageName
 	img.Tags = oriFileName
-	img.Type = 1
+	img.Type = articleImg.Type
 	img.Width = width
 	img.Height = height
 	img.Tags = articleImg.Tags
@@ -114,7 +115,7 @@ func (ser *apiImgsService) SaveImage(articleImg models.AppArticleUploadImage, us
 
 func (ser *apiImgsService) GetImagesByUserId(userId uint64, page int, pageSize int) ([]models.ImgsListResp, int, int, error) {
 	conds := make(map[string][]interface{})
-	exp := []interface{}{"=", userId}
+	exp := []interface{}{"= ?", userId}
 	conds["user_id"] = exp
 	resList, page, totalPage, err := ser.Dao.GetImgs(conds, page, pageSize)
 	imgList := []models.ImgsListResp{}

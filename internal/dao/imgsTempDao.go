@@ -3,6 +3,7 @@ package dao
 import (
 	"cmsApp/internal/models"
 	"cmsApp/pkg/postgresqlx"
+	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -25,7 +26,9 @@ func NewImgsTempDao() *ImgsTempDao {
 }
 
 func (dao *ImgsTempDao) CreateImgsTemp(imgsTemp models.ImgsTemp) (uint64, error) {
+	fmt.Println(imgsTemp, "--imgsTemp-")
 	if err := dao.DB.Create(&imgsTemp).Error; err != nil {
+		fmt.Println(err, "---er--")
 		return 0, err
 	}
 	return imgsTemp.Id, nil

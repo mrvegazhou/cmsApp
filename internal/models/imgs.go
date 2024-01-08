@@ -15,7 +15,7 @@ type ImgsFields struct {
 	Id   uint64 `gorm:"column:id;primary_key" json:"id" form:"id" name:"id"`
 	Name string `gorm:"column:name" json:"name" form:"name" name:"name"`
 	Path string `gorm:"column:path" json:"path" form:"path" name:"path"`
-	// 1. 文章图片
+	// 1. 文章图片 2. 封面
 	Type       uint      `gorm:"column:type" json:"type" form:"type" name:"type"`
 	Tags       string    `gorm:"column:tags" json:"tags" form:"tags" name:"tags"`
 	Width      int       `gorm:"column:width" json:"widht" form:"widht" name:"width"`

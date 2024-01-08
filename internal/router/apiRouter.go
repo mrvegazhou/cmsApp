@@ -1,6 +1,8 @@
 package router
 
 import (
+	"cmsApp/internal/controllers/api/appTag"
+	"cmsApp/internal/controllers/api/appType"
 	"cmsApp/internal/controllers/api/article"
 	"cmsApp/internal/controllers/api/imgs"
 	"cmsApp/internal/controllers/api/siteConfig"
@@ -49,7 +51,18 @@ func (ar ApiRouter) AddRouters() {
 		{
 			ar.addRouter(article.NewArticleController(), apiArticleRouter)
 			ar.addRouter(article.NewArticleToolBarController(), apiArticleRouter)
-			ar.addRouter(article.NewArticleTypeController(), apiArticleRouter)
+		}
+	}
+	{
+		apiTypeRouter := ar.root.Group("/type")
+		{
+			ar.addRouter(appType.NewTypeController(), apiTypeRouter)
+		}
+	}
+	{
+		apiTagRouter := ar.root.Group("/tag")
+		{
+			ar.addRouter(appTag.NewAppTagController(), apiTagRouter)
 		}
 	}
 	{

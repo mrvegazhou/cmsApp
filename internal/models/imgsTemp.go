@@ -10,14 +10,14 @@ type ImgsTemp struct {
 	ImgsFields
 }
 
-func (article *ImgsTemp) TableName() string {
+func (temp *ImgsTemp) TableName() string {
 	return "cms_app.app_imgs_temp"
 }
 
-func (article *ImgsTemp) FillData(db *gorm.DB) {
+func (temp *ImgsTemp) FillData(db *gorm.DB) {
 
 }
 
-func (article *ImgsTemp) GetConnName() string {
+func (temp *ImgsTemp) GetConnName() string {
 	return "default"
 }

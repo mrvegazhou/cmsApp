@@ -64,6 +64,15 @@ func (ser *apiArticleService) UploadImage(req models.AppArticleUploadImage, user
 	return fullPath, imgName, fileName, nil
 }
 
+func (ser *apiArticleService) UploadCoverImage(req models.AppArticleUploadImage, userId uint64) (fullPath string, imgName string, fileName string, err error) {
+	_, imgPath, imgName, err := NewApiImgsService().SaveImage(req, userId)
+	if err != nil {
+		return fullPath, imgName, fileName, err
+	}
+	fullPath, _ = url.JoinPath(imgPath, imgName)
+	return fullPath, imgName, fileName, nil
+}
+
 func (ser *apiArticleService) SaveArticleDraft(req models.AppArticle) (articleDraft models.AppArticle, err error) {
 	if req.AuthorId <= 0 {
 		return articleDraft, errors.New(constant.ARTICLE_AUTHOR_ERR)

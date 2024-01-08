@@ -70,7 +70,34 @@ func (apicon articleController) uploadImage(c *gin.Context) {
 	}
 	//userId, _ := c.Get("uid")
 	userId := uint64(3)
-	_, imgName, fileName, err := apiservice.NewApiArticleService().UploadImage(req, userId)
+	imgName := ""
+	fileName := ""
+	if req.Type == 2 {
+		_, imgName, fileName, err = apiservice.NewApiArticleService().UploadCoverImage(req, userId)
+	} else if req.Type == 1 {
+		_, imgName, fileName, err = apiservice.NewApiArticleService().UploadImage(req, userId)
+	}
+
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	apicon.Success(c, map[string]interface{}{"imageName": imgName, "fileName": fileName})
+}
+
+func (apicon articleController) uploadCoverImage(c *gin.Context) {
+	var (
+		err error
+		req models.AppArticleUploadImage
+	)
+	err = apicon.FormBind(c, &req)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	//userId, _ := c.Get("uid")
+	userId := uint64(3)
+	_, imgName, fileName, err := apiservice.NewApiArticleService().UploadCoverImage(req, userId)
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return
