@@ -4,11 +4,12 @@ import (
 	"cmsApp/internal/dao"
 	"cmsApp/internal/models"
 	"gorm.io/gorm"
+	"strings"
 	"sync"
 )
 
 type apiTagService struct {
-	Dao *dao.AppTagDao
+	TagDao *dao.AppTagDao
 }
 
 var (
@@ -17,19 +18,26 @@ var (
 )
 
 func NewApiTagService() *apiTagService {
-	onceApiTypeService.Do(func() {
+	onceApiTagService.Do(func() {
 		instanceApiTagService = &apiTagService{
-			Dao: dao.NewAppTagDao(),
+			TagDao: dao.NewAppTagDao(),
 		}
 	})
 	return instanceApiTagService
 }
 
 func (ser *apiTagService) GetTagList(name string) (appTagList []models.AppTag, err error) {
-	condition := map[string][]interface{}{
-		"name": []interface{}{"like ?", "%" + name + "%"},
+	conditions := map[string][]interface{}{}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		// 应该返回热门的tag列表
+		return appTagList, nil
+	} else {
+		conditions = map[string][]interface{}{
+			"name": {"like ?", "%" + name + "%"},
+		}
 	}
-	appTagList, err = ser.Dao.GetTagList(condition)
+	appTagList, err = ser.TagDao.GetTagList(conditions)
 	if err == gorm.ErrRecordNotFound {
 		return appTagList, nil
 	}

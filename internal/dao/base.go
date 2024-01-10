@@ -10,7 +10,6 @@ import (
 )
 
 type BaseDao struct {
-	DB *gorm.DB
 }
 
 func (dao *BaseDao) GetFields(obj interface{}) []string {

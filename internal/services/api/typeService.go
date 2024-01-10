@@ -4,11 +4,12 @@ import (
 	"cmsApp/internal/dao"
 	"cmsApp/internal/models"
 	"gorm.io/gorm"
+	"strings"
 	"sync"
 )
 
 type apiTypeService struct {
-	Dao *dao.AppTypeDao
+	TypeDao *dao.AppTypeDao
 }
 
 var (
@@ -19,20 +20,21 @@ var (
 func NewApiTypeService() *apiTypeService {
 	onceApiTypeService.Do(func() {
 		instanceApiTypeService = &apiTypeService{
-			Dao: dao.NewAppTypeDao(),
+			TypeDao: dao.NewAppTypeDao(),
 		}
 	})
 	return instanceApiTypeService
 }
 
 func (ser *apiTypeService) GetTypeList(name string) (typeList []models.AppType, err error) {
-	var condition map[string][]interface{}
+	conditions := map[string][]interface{}{}
+	name = strings.TrimSpace(name)
 	if name != "" {
-		condition = map[string][]interface{}{
-			"name": []interface{}{"like ?", "%" + name + "%"},
+		conditions = map[string][]interface{}{
+			"name": {"like ?", "%" + name + "%"},
 		}
 	}
-	typeList, err = ser.Dao.GetTypeList(condition)
+	typeList, err = ser.TypeDao.GetTypeList(conditions)
 	if err == gorm.ErrRecordNotFound {
 		return typeList, nil
 	}
@@ -43,20 +45,37 @@ func (ser *apiTypeService) GetTypeListByPid(pid uint64) (typeList []models.AppTy
 	condition := map[string][]interface{}{
 		"pid": []interface{}{"= ?", pid},
 	}
-	typeList, err = ser.Dao.GetTypeList(condition)
+	typeList, err = ser.TypeDao.GetTypeList(condition)
 	if err == gorm.ErrRecordNotFound {
 		return typeList, nil
 	}
 	return typeList, err
 }
 
-func (ser *apiTypeService) GetTypeInfoById(id uint64) (typeList []models.AppType, err error) {
+func (ser *apiTypeService) GetTypeInfoById(id uint64) (typeInfo models.AppTypeByIdInfo, err error) {
 	condition := map[string][]interface{}{
-		"id": []interface{}{"= ?", id},
+		"id":     []interface{}{"= ?", id},
+		"status": []interface{}{"= ?", 1},
 	}
-	typeList, err = ser.Dao.GetTypeList(condition)
+	appType := models.AppType{}
+	appType, err = ser.TypeDao.GetTypeInfo(condition)
 	if err == gorm.ErrRecordNotFound {
-		return typeList, nil
+		return typeInfo, nil
 	}
-	return typeList, err
+	typeInfo.Id = appType.Id
+	typeInfo.Name = appType.Name
+
+	if appType.Pid != 0 {
+		var appPType models.AppType
+		condition = map[string][]interface{}{
+			"id":     []interface{}{"= ?", appType.Pid},
+			"status": []interface{}{"= ?", 1},
+		}
+		appPType, err = ser.TypeDao.GetTypeInfo(condition)
+		if err == nil {
+			typeInfo.Pid = appPType.Id
+			typeInfo.Pname = appPType.Name
+		}
+	}
+	return typeInfo, err
 }

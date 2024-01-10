@@ -35,7 +35,7 @@ func (dao *AppTypeDao) GetTypeList(conditions map[string][]interface{}) ([]model
 	appTypes := []models.AppType{}
 	Db := dao.DB
 	if len(conditions) > 0 {
-		Db = dao.BaseDao.ConditionWhere(Db, conditions, models.AppTypeFields{})
+		Db = dao.ConditionWhere(Db, conditions, models.AppTypeFields{})
 	}
 	Db = Db.Scopes(dao.Order("create_time desc"))
 	if err := Db.Find(&appTypes).Error; err != nil {
@@ -48,7 +48,7 @@ func (dao *AppTypeDao) GetTypeInfo(conditions map[string][]interface{}) (models.
 	appType := models.AppType{}
 	Db := dao.DB
 	if len(conditions) > 0 {
-		Db = dao.BaseDao.ConditionWhere(Db, conditions, models.AppTypeFields{})
+		Db = dao.ConditionWhere(Db, conditions, models.AppTypeFields{})
 	}
 	Db = Db.Scopes(dao.Order("create_time desc"))
 	if err := Db.First(&appType).Error; err != nil {

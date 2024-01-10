@@ -32,6 +32,13 @@ type AppTypeByIdReq struct {
 	Id uint64 `label:"类别标识" json:"id"`
 }
 
+type AppTypeByIdInfo struct {
+	Id    uint64 `json:"id" form:"id" name:"id"`
+	Name  string `json:"name" form:"name" name:"name"`
+	Pid   uint64 `json:"pid" form:"pid" name:"pid"`
+	Pname string `json:"pname" form:"pname" name:"pname"`
+}
+
 func (appType *AppType) TableName() string {
 	return "cms_app.app_type"
 }
