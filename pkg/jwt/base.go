@@ -36,8 +36,13 @@ type Payload struct {
 	Exp  time.Time `form:"exp" json:"exp"`
 	Name string    `form:"name" json:"name"`
 	Id   uint64    `form:"id" json:"id"`
-	Aud  string    `form:"aud" json:"aud"`
-	Iat  time.Time `form:"iat" json:"iat"`
+	// 接收者
+	Aud string `form:"aud" json:"aud"`
+	// 主题
+	Sub string `form:"sub" json:"sub"`
+	// 发送者
+	Iss string    `form:"iss" json:"iss"`
+	Iat time.Time `form:"iat" json:"iat"`
 }
 
 func (payload *Payload) Gen() (string, error) {

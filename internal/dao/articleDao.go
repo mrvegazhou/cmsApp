@@ -10,6 +10,7 @@ import (
 
 type AppArticleDao struct {
 	DB *gorm.DB
+	BaseDao
 }
 
 var (
@@ -49,4 +50,17 @@ func (dao *AppArticleDao) UpdateArticle(id uint64, column models.AppArticle) (in
 	modelDB := dao.DB.Model(&draft)
 	result := modelDB.Where("id = ?", id).Updates(column)
 	return result.RowsAffected, modelDB.Error
+}
+
+func (dao *AppArticleDao) GetArticleList(conditions map[string][]interface{}) ([]models.AppArticle, error) {
+	appArticle := []models.AppArticle{}
+	Db := dao.DB
+	if len(conditions) > 0 {
+		Db = dao.ConditionWhere(Db, conditions, models.ArticleFields{})
+	}
+	Db = Db.Scopes(dao.Order("id desc"))
+	if err := Db.Find(&appArticle).Error; err != nil {
+		return appArticle, err
+	}
+	return appArticle, nil
 }

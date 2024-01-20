@@ -50,4 +50,12 @@ const (
 	OPEN_FILE_ERR        = "打开文件失败"
 	FILE_NOT_EXIST_ERR   = "文件不存在"
 	DECODE_IMG_ERR       = "解析图片失败"
+
+	COLLAB_INVITE_USER_ERR  = "邀请用户失败"
+	COLLAB_INVITE_TTL_ERR   = "邀请失效时间出错"
+	COLLAB_INVITE_USER_NONE = "邀请用户为空"
+	COLLAB_KICKOUT_USER_ERR = "删除协作用户失败"
+	COLLAB_EXIT_ERR         = "退出协作失败"
+	COLLAB_LIST_ERR         = "获取协作列表失败"
+	COLLAB_TOKEN_ERR        = "生成地址失败"
 )

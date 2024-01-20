@@ -416,3 +416,8 @@ func (w *Watermark) mustParseFont() *truetype.Font {
 	}
 	return ft
 }
+
+//fileBytes, _ := ioutil.ReadFile("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/404.png")
+//reader := bytes.NewBuffer(fileBytes)
+//img, _ := watermark.New(reader, ".png", watermark.BottomRight, "avc", "")
+//err := img.WaterMakeDone("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/202.png")

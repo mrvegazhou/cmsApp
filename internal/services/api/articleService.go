@@ -106,3 +106,15 @@ func (ser *apiArticleService) SaveArticleDraft(req models.AppArticle) (articleDr
 	}
 	return articleDraft, nil
 }
+
+func (ser *apiArticleService) GetArticleList(articleIds []uint64) ([]models.AppArticle, error) {
+	conditions := map[string][]interface{}{}
+	if len(articleIds) > 0 {
+		conditions = map[string][]interface{}{
+			"id": {"IN ?", articleIds},
+		}
+		return ser.Dao.GetArticleList(conditions)
+	} else {
+		return []models.AppArticle{}, nil
+	}
+}

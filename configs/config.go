@@ -24,8 +24,11 @@ type AppConf struct {
 	Register     Register       `yaml:"register" json:"register"`
 	SlideCaptcha SlideCaptcha   `yaml:"slide_captcha" json:"slide_captcha"`
 	Upload       Upload         `yaml:"upload" json:"upload"`
+	Article      Article        `yaml:"article" json:"article"`
 }
-
+type Article struct {
+	JwtSecret string `yaml:"jwt_secret" json:"jwt_secret"`
+}
 type Upload struct {
 	BasePath       string   `yaml:"base_path" json:"basePath"`
 	ImageAllowExts []string `yaml:"image_allow_exts" json:"imageAllowExts"`

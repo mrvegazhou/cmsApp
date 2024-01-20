@@ -38,3 +38,26 @@ func (ser *apiUserService) GetUserInfoRes(condition map[string]interface{}) (use
 	}
 	return userInfoRes, err
 }
+
+func (ser *apiUserService) SearchUserList(name string, pageParam int, pageSizeParam int) (userList []models.AppUser, page int, totalPage int, err error) {
+	userList, page, totalPage, err = ser.Dao.SearchUserList(name, pageParam, pageSizeParam)
+	if err == gorm.ErrRecordNotFound {
+		return userList, page, totalPage, nil
+	}
+	for i := 0; i < len(userList); i++ {
+		userList[i].Phone = ""
+	}
+	return userList, page, totalPage, err
+}
+
+func (ser *apiUserService) GetUserList(userIds []uint64) (userList []models.AppUser, err error) {
+	conditions := map[string][]interface{}{}
+	if len(userIds) > 0 {
+		conditions = map[string][]interface{}{
+			"id": {"IN ?", userIds},
+		}
+		return ser.Dao.GetUserList(conditions)
+	} else {
+		return userList, err
+	}
+}

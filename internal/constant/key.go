@@ -12,4 +12,7 @@ const (
 	CAPTCHA_SEND_EMAIL_CODE_MODE  = "SEND_EMAIL_CODE:%s"
 	CAPTCHA_CHANGE_PWD_MODE       = "CHANGE_PWD"
 	CAPTCHA_REG_MODE              = "REGISTER"
+
+	REDIS_COLLAB_USER  = "collab:users"
+	REDIS_COLLAB_TOKEN = "collab:token"
 )

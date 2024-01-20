@@ -29,6 +29,8 @@ base:
   port: 3015
   log_media: "redis"
   page_size: 20
+article:
+  jwt_secret: "abcde"
 email:
   value: "1667599540@qq.com"
   password: "uayjvgcipbiyecaj"

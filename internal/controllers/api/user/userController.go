@@ -2,6 +2,7 @@ package user
 
 import (
 	"cmsApp/internal/controllers/api"
+	"cmsApp/internal/models"
 	apiservice "cmsApp/internal/services/api"
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +18,7 @@ func NewUserController() userController {
 func (con userController) Routes(rg *gin.RouterGroup) {
 	//rg.POST("/info", middleware.JwtAuth(), con.info)
 	rg.POST("/info", con.info)
+	rg.POST("/search/name", con.searchName)
 	rg.POST("/search/trendingToday", con.search)
 }
 
@@ -41,6 +43,26 @@ func (apicon userController) info(c *gin.Context) {
 	apicon.Success(c, userInfo)
 }
 
+// @Summary 通过名称搜索用户列表
+func (apicon userController) searchName(c *gin.Context) {
+	var (
+		err error
+		req models.AppUserSearchNameRes
+	)
+	err = apicon.FormBind(c, &req)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	userList, page, totalPage, err := apiservice.NewApiUserService().SearchUserList(req.Name, req.Page, 5)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	apicon.Success(c, map[string]interface{}{"userList": userList, "page": page, "totalPage": totalPage})
+}
+
 func (apicon userController) search(c *gin.Context) {
+
 	apicon.Success(c, true)
 }

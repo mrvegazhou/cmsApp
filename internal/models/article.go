@@ -9,10 +9,10 @@ import (
 
 type AppArticle struct {
 	postgresqlx.BaseModle
-	articleFields
+	ArticleFields
 }
 
-type articleFields struct {
+type ArticleFields struct {
 	Id              uint64 `gorm:"primary_key;not null" json:"id" form:"id" name:"id"`
 	Title           string `gorm:"column:title;not null" json:"title" form:"title" label:"文章标题" name:"title"`
 	Description     string `gorm:"column:description" json:"description" form:"description" label:"文章描述" name:"description"`
@@ -32,12 +32,17 @@ type articleFields struct {
 	DeleteTime time.Time `gorm:"column:delete_time;default:(-);" json:"-" name:"delete_time"`
 }
 
+type CollabArticleInfo struct {
+	TokenUrl string     `label:"协作地址" json:"tokenUrl"`
+	Info     AppArticle `label:"文章详情" json:"info"`
+}
+
 type AppArticleReq struct {
 	ArticleId uint64 `form:"articleId" binding:"required" label:"文章标识" json:"articleId"`
 }
 
 type AppArticleUploadImage struct {
-	File      *multipart.FileHeader `form:"file0" label:"文件" binding:"required"`
+	File      *multipart.FileHeader `form:"file0" label:"文件" binding:"required" label:"文件"`
 	ArticleId uint64                `form:"articleId" label:"文件标识"`
 	Tags      string                `form:"tags" label:"文件标签"`
 	Type      uint                  `form:"type" label:"图片类别"`
@@ -45,6 +50,12 @@ type AppArticleUploadImage struct {
 
 type AppArticleImgsReq struct {
 	Page int `form:"page" label:"页码" json:"page"`
+}
+
+type AppArticleCollabInviteReq struct {
+	UserIds    []uint64 `json:"userIds" binding:"required" form:"userIds" label:"接收用户"`
+	ArticleId  uint64   `json:"articleId" form:"articleId" label:"文章标识"`
+	ExpireName string   `json:"expireName" form:"expireName" label:"过期时间"`
 }
 
 func (article *AppArticle) TableName() string {

@@ -8,19 +8,32 @@ import (
 
 type AppUser struct {
 	postgresqlx.BaseModle
-	Id           uint64    `gorm:"column:id;primary_key" json:"id" form:"id"`
-	Nickname     string    `gorm:"column:nickname;not null" json:"nickname" form:"nickanme"`
-	Phone        string    `gorm:"column:phone" json:"phone" form:"phone"`
-	About        string    `gorm:"column:about" json:"about" form:"about"`
-	AvatarUrl    string    `gorm:"column:avatar_url" json:"avatarUrl" form:"avatarUrl"`
-	Email        string    `gorm:"column:email;not null" json:"email" form:"email"`
-	Password     string    `gorm:"column:password;not null" json:"-" form:"password"`
-	Salt         string    `gorm:"column:salt;not null" json:"-" form:"salt"`
-	RefreshToken string    `gorm:"column:refresh_token" json:"-"`
-	CreateTime   time.Time `gorm:"autoCreateTime;column:create_time;<-:create" json:"createTime"`
-	ExpirTime    time.Time `gorm:"column:expir_time" json:"expirTime,omitempty"`
-	UpdateTime   time.Time `gorm:"column:update_time" json:"updateTime,omitempty"`
-	DeleteTime   time.Time `gorm:"column:delete_time" json:"-"`
+	UserFields
+}
+
+type UserFields struct {
+	Id           uint64    `gorm:"column:id;primary_key" json:"id" form:"id" name:"id"`
+	Nickname     string    `gorm:"column:nickname;not null" json:"nickname" form:"nickanme" name:"nickname"`
+	Phone        string    `gorm:"column:phone" json:"phone" form:"phone" name:"phone"`
+	About        string    `gorm:"column:about" json:"about" form:"about" name:"about"`
+	AvatarUrl    string    `gorm:"column:avatar_url" json:"avatarUrl" form:"avatarUrl" name:"avatar_url"`
+	Email        string    `gorm:"column:email;not null" json:"email" form:"email" name:"email"`
+	Password     string    `gorm:"column:password;not null" json:"-" form:"password" name:"password"`
+	Salt         string    `gorm:"column:salt;not null" json:"-" form:"salt" name:"salt"`
+	RefreshToken string    `gorm:"column:refresh_token" json:"-" name:""`
+	CreateTime   time.Time `gorm:"autoCreateTime;column:create_time;<-:create" json:"createTime" name:"create_time"`
+	ExpirTime    time.Time `gorm:"column:expir_time" json:"expirTime,omitempty" name:"expir_time"`
+	UpdateTime   time.Time `gorm:"column:update_time" json:"updateTime,omitempty" name:"update_time"`
+	DeleteTime   time.Time `gorm:"column:delete_time" json:"-" name:"delete_time"`
+}
+
+type AppUserInfo struct {
+	Id        uint64 `json:"id" form:"id"`
+	Nickname  string `json:"nickname" form:"nickanme"`
+	Phone     string `json:"phone" form:"phone"`
+	About     string `json:"about" form:"about"`
+	AvatarUrl string `json:"avatarUrl" form:"avatarUrl"`
+	Email     string `json:"email" form:"email"`
 }
 
 type AppUserRes struct {
@@ -95,6 +108,11 @@ type AppUserSlideCaptchaReq struct {
 }
 
 type AppUserPwdPubKeyReq struct {
+}
+
+type AppUserSearchNameRes struct {
+	Name string `json:"name"`
+	Page int    `json:"page"`
 }
 
 func (user *AppUser) TableName() string {
