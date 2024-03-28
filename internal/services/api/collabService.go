@@ -5,14 +5,19 @@ import (
 	"cmsApp/internal/constant"
 	"cmsApp/internal/dao"
 	"cmsApp/internal/models"
+	"cmsApp/pkg/AES"
 	"cmsApp/pkg/jwt"
 	"cmsApp/pkg/redisClient"
+	"cmsApp/pkg/utils/arrayx"
 	"cmsApp/pkg/utils/number"
 	"cmsApp/pkg/utils/snowflake"
+	stringsx "cmsApp/pkg/utils/strings"
 	"context"
 	"fmt"
+	jwtLib "github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cast"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -57,9 +62,9 @@ func (ser *apiCollabService) JoinCollab(uid uint64, articleId uint64, userIds []
 	}
 	err = rdb.Watch(ctx, func(tx *redis.Tx) error {
 		_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-			_, err = pipe.SRem(ctx, setKey, ids).Result()
+			_, err = pipe.SRem(ctx, setKey, ids...).Result()
 			if err == nil {
-				if _, err := pipe.SAdd(ctx, setKey, ids).Result(); err != nil {
+				if _, err := pipe.SAdd(ctx, setKey, ids...).Result(); err != nil {
 					return fmt.Errorf("%s transaction(add): %w", constant.COLLAB_INVITE_USER_ERR, err)
 				} else {
 					// TOKEN
@@ -99,12 +104,34 @@ func (ser *apiCollabService) KickOutCollab(uid uint64, articleId uint64, userIds
 	return nil
 }
 
-func (ser *apiCollabService) ExitCollab(uid, articleId uint64) error {
-	var ctx = context.Background()
-	setKey := fmt.Sprintf("%s:%d:%d", constant.REDIS_COLLAB_USER, uid, articleId)
-	_, err := redisClient.GetRedisClient().Del(ctx, setKey).Result()
+func (ser *apiCollabService) ExitCollab(uid uint64, token string) error {
+	payload, err := jwt.Check(token, configs.App.Article.JwtSecret, false)
+	secret := configs.App.Article.JwtSecret
+	roomName := AES.Decrypt(payload.Name, secret)
 	if err != nil {
-		return fmt.Errorf("%s transaction(del): %w", constant.COLLAB_EXIT_ERR, err)
+		return fmt.Errorf("%s: %w", constant.COLLAB_EXIT_ERR, err)
+	}
+	var ctx = context.Background()
+	setKey := fmt.Sprintf("%s:%d:%s", constant.REDIS_COLLAB_USER, uid, payload.Subject)
+	rdb := redisClient.GetRedisClient()
+	err = rdb.Watch(ctx, func(tx *redis.Tx) error {
+		_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err = pipe.Del(ctx, setKey).Result()
+			if err == nil {
+				setKey = fmt.Sprintf("%s:updates", roomName)
+				if roomName != "" {
+					_, err = pipe.Del(ctx, setKey).Result()
+					if err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("%s:%w", constant.COLLAB_EXIT_ERR, err)
 	}
 	return err
 }
@@ -176,7 +203,6 @@ func (ser *apiCollabService) ShowKeysCollab(uid uint64) (map[uint64]interface{},
 			if err == nil {
 				collab.TokenUrl = tokenUrl
 			}
-			fmt.Println(tokenKey, collab.TokenUrl, "---s---")
 			resMap[articleId] = map[string]interface{}{"userList": tmpArr, "articleInfo": collab}
 		}
 	}
@@ -185,30 +211,81 @@ func (ser *apiCollabService) ShowKeysCollab(uid uint64) (map[uint64]interface{},
 
 // 生成邀请token
 func (ser *apiCollabService) GenURlToken(uid, articleId uint64, userIds []uint64, expireTime int64) (string, time.Time, error) {
-	var payload jwt.Payload
+	var myClaims jwt.MyClaims
 	var exp time.Time
 
+	secret := configs.App.Article.JwtSecret
+
 	// 房间名称
-	payload.Name = snowflake.GenIDString()
+	myClaims.Name = AES.Encrypt(snowflake.GenIDString(), secret)
 	// 本人id
-	payload.Iss = cast.ToString(uid)
-	// 主题
-	payload.Sub = cast.ToString(articleId)
+	myClaims.Issuer = AES.Encrypt(cast.ToString(uid), secret)
+	// 主题 文章id 0标识没有发表的文章
+	myClaims.Subject = AES.Encrypt(cast.ToString(articleId), secret)
+	// 签发时间
+	myClaims.IssuedAt = jwtLib.NewNumericDate(time.Now())
 
 	var temp = make([]string, len(userIds)) //为了使传参类型适用于strings.join函数
 	for k, v := range userIds {
 		temp[k] = fmt.Sprintf("%d", v)
 	}
 	// 接收人
-	payload.Aud = strings.Join(temp, ",")
+	myClaims.Audience = []string{AES.Encrypt(strings.Join(temp, ","), secret)}
 
 	if expireTime != -1 {
 		exp = time.Now().Add(time.Duration(expireTime) * time.Second)
 	} else {
 		exp = time.Time{}
 	}
-	payload.Exp = exp
+	myClaims.ExpiresAt = jwtLib.NewNumericDate(exp)
 
-	token, err := jwt.Generate(configs.App.Article.JwtSecret, "HS256", payload)
+	token, err := jwt.Generate(myClaims, secret)
 	return token, exp, err
+}
+
+func (ser *apiCollabService) CheckCollabToken(userId uint64, token string) models.CollabTokenInfo {
+	var ctx = context.Background()
+	payload, err := jwt.Check(token, configs.App.Article.JwtSecret, false)
+
+	tokenInfo := models.CollabTokenInfo{}
+	secret := configs.App.Article.JwtSecret
+
+	if err != nil {
+		tokenInfo.IsCollab = false
+	} else {
+		// 查询用户信息
+		userInfo, err := NewApiUserService().GetUserInfoRes(map[string]interface{}{"id": userId})
+		// 查询无报错，并且查询值不为空
+		if err == nil && !reflect.DeepEqual(userInfo, models.AppUserRes{}) {
+			tokenInfo.IsCollab = true
+			tokenInfo.RoomName = AES.Decrypt(payload.Name, secret)
+			tokenInfo.CursorColor = stringsx.Str2rgb(userInfo.Nickname)
+			tokenInfo.UserName = userInfo.Nickname
+			tokenInfo.Token = token
+		}
+	}
+
+	if payload == nil || payload.Issuer == "" {
+		tokenInfo.IsCollab = false
+	} else {
+		iss := AES.Decrypt(payload.Issuer, secret)
+		// 检查是否为本人
+		if cast.ToUint64(iss) == userId {
+			tokenInfo.IsMe = true
+		} else {
+			tokenInfo.IsMe = false
+		}
+		setKey := fmt.Sprintf("%s:%s:%s", constant.REDIS_COLLAB_USER, iss, AES.Decrypt(payload.Subject, secret))
+		listIds, err := redisClient.GetRedisClient().SMembers(ctx, setKey).Result()
+		if err != nil {
+			tokenInfo.IsCollab = false
+		} else {
+			// 查看用户是否为发起人 或者 包含在接受者内
+			uid := cast.ToString(userId)
+			if iss != uid && !arrayx.IsContain(listIds, uid) {
+				tokenInfo.IsCollab = false
+			}
+		}
+	}
+	return tokenInfo
 }

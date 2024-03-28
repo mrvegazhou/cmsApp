@@ -43,6 +43,7 @@ func customZhTrans(v *validator.Validate, trans ut.Translator) {
 	}
 	for key, val := range data {
 		//自定义translate与我们的自定义validator配合使用（其实这里也需要把validator与translator进行绑定，v与global.Trans）
+		fmt.Println(key, trans, "----trans---")
 		v.RegisterTranslation(key, trans, func(ut ut.Translator) error {
 			//自定义失败信息
 			return ut.Add(key, val, true) // see universal-translator for details

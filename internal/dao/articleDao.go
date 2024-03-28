@@ -38,11 +38,11 @@ func (dao *AppArticleDao) UpdateColumnCount(articleId uint64, column, op string,
 	return dao.DB.Model(&models.AppArticle{}).Where("id = ?", articleId).UpdateColumn(column, gorm.Expr(opStr, 1)).Error
 }
 
-func (dao *AppArticleDao) CreateAppArticle(articleDraft models.AppArticle) (uint64, error) {
-	if err := dao.DB.Create(&articleDraft).Error; err != nil {
+func (dao *AppArticleDao) CreateAppArticle(article models.AppArticle) (uint64, error) {
+	if err := dao.DB.Create(&article).Error; err != nil {
 		return 0, err
 	}
-	return articleDraft.Id, nil
+	return article.Id, nil
 }
 
 func (dao *AppArticleDao) UpdateArticle(id uint64, column models.AppArticle) (int64, error) {
@@ -56,11 +56,10 @@ func (dao *AppArticleDao) GetArticleList(conditions map[string][]interface{}) ([
 	appArticle := []models.AppArticle{}
 	Db := dao.DB
 	if len(conditions) > 0 {
-		Db = dao.ConditionWhere(Db, conditions, models.ArticleFields{})
-	}
-	Db = Db.Scopes(dao.Order("id desc"))
-	if err := Db.Find(&appArticle).Error; err != nil {
-		return appArticle, err
+		Db = dao.ConditionWhere(Db, conditions, models.ArticleFields{}).Scopes(dao.Order("id desc"))
+		if err := Db.Find(&appArticle).Error; err != nil {
+			return appArticle, err
+		}
 	}
 	return appArticle, nil
 }

@@ -17,7 +17,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	jwtLib "github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/cast"
 	"gorm.io/gorm"
 	"strconv"
 	"sync"
@@ -160,7 +162,7 @@ func (ser *apiLoginService) GetCaptchaIdentifying(email, mode string) string {
  */
 func (ser *apiLoginService) LoginByEmail(req models.AppUserLoginReq, ip string, t uint) (userInfo models.AppUser, token string, refreshToken string, times uint, err error) {
 	var (
-		payload          jwt.Payload
+		myClaims         jwt.MyClaims
 		email            = req.Email
 		originalPassword = req.Password
 	)
@@ -197,17 +199,21 @@ func (ser *apiLoginService) LoginByEmail(req models.AppUserLoginReq, ip string, 
 		return userInfo, token, refreshToken, times, errors.New(constant.LOGIN_PASSWORD_ERR)
 	}
 
+	// 根据用户表里的过期时间设置token的失效期
 	durationHours := int(userInfo.ExpirTime.Sub(userInfo.UpdateTime).Hours())
+
 	// 规划暂停账号
 	if durationHours <= 100 || userInfo.ExpirTime.String() == "0001-01-01 00:00:00 +0000 UTC" {
 		return userInfo, token, refreshToken, times, errors.New(constant.LOGIN_TIME_EXPIRE)
 	}
 
 	//生成token
-	payload.Name = userInfo.Email
-	payload.Id = userInfo.Id
-	payload.Exp = time.Now().Add(time.Hour * time.Duration(durationHours))
-	token, err = jwt.Generate(configs.App.Login.JwtSecret, "HS256", payload)
+	myClaims = jwt.MyClaims{}
+	myClaims.Name = userInfo.Email
+	myClaims.ID = cast.ToString(userInfo.Id)
+	fmt.Println(durationHours, time.Now().Add(time.Hour*time.Duration(durationHours)), jwtLib.NewNumericDate(time.Now().Add(time.Hour*time.Duration(durationHours))), "===s====")
+	myClaims.ExpiresAt = jwtLib.NewNumericDate(time.Now().Add(time.Hour * time.Duration(durationHours)))
+	token, err = jwt.Generate(myClaims, configs.App.Login.JwtSecret)
 	if err != nil {
 		return userInfo, token, refreshToken, times, errors.New(constant.TOKEN_GEN_ERR)
 	}
@@ -240,39 +246,51 @@ func (ser *apiLoginService) Logout(uid uint64, ip string) error {
 /**
 * 使用refresh token 更换jtoken
  */
-func (ser *apiLoginService) RefreshToken(req models.AppUserRefreshTokenReq) (token string, err error) {
+func (ser *apiLoginService) RefreshToken(uid uint64, req models.AppUserRefreshTokenReq) (token string, refreshToken string, err error) {
 	var (
-		user    models.AppUser
-		payload jwt.Payload
+		user     models.AppUser
+		myClaims jwt.MyClaims
 	)
 
-	user, err = ser.Dao.GetAppUser(map[string]interface{}{"refresh_token": req.RefreshToken})
+	user, err = ser.Dao.GetAppUser(map[string]interface{}{"id": uid})
 	if err != nil {
 		return
 	}
 
-	if user.Id == 0 {
-		return token, errors.New("refresh token 错误")
+	if user.RefreshToken != req.RefreshToken {
+		return "", "", errors.New(constant.TOKEN_CHECK_ERR)
 	}
 
 	//校验过期时间
 	expirTime, err := time.ParseInLocation("2006-01-02 15:04:05", user.ExpirTime.Format("2006-01-02 15:04:05"), time.Local)
 	if err != nil || expirTime.IsZero() {
-		return token, errors.New("过期时间格式化错误")
+		return "", "", errors.New(constant.TOKEN_EXPIRE_FORMAT_ERR)
 	}
 	if time.Until(expirTime).Hours() < 0 {
-		return token, errors.New("refresh token 已过期请重新登录")
+		return "", "", errors.New(constant.TOKEN_EXPIRE)
 	}
 
 	//生成jtoken
-	payload.Name = user.Nickname
-	payload.Id = user.Id
-	payload.Exp = time.Now().Local().Add(5 * time.Minute)
-	token, err = jwt.Generate(configs.App.Login.JwtSecret, "HS256", payload)
+	myClaims.Name = user.Nickname
+	myClaims.ID = cast.ToString(user.Id)
+	myClaims.ExpiresAt = jwtLib.NewNumericDate(time.Now().Local().Add(5 * time.Minute))
+	token, err = jwt.Generate(myClaims, configs.App.Login.JwtSecret)
 	if err != nil {
-		return token, err
+		return "", "", err
 	}
 
+	// 重新生成refreshToken
+	refreshToken = strings.Encryption(user.Password, strconv.FormatInt(time.Now().UnixNano(), 10))
+	// 更新update_time, refresh_token
+	err = ser.Dao.UpdateColumns(map[string]interface{}{
+		"id": uid,
+	}, map[string]interface{}{
+		"update_time":   time.Now(),
+		"refresh_token": refreshToken,
+	}, nil)
+	if err != nil {
+		return "", "", err
+	}
 	return
 }
 

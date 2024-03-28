@@ -3,7 +3,6 @@ package dao
 import (
 	"cmsApp/internal/models"
 	"cmsApp/pkg/postgresqlx"
-	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -26,10 +25,16 @@ func NewImgsTempDao() *ImgsTempDao {
 }
 
 func (dao *ImgsTempDao) CreateImgsTemp(imgsTemp models.ImgsTemp) (uint64, error) {
-	fmt.Println(imgsTemp, "--imgsTemp-")
 	if err := dao.DB.Create(&imgsTemp).Error; err != nil {
-		fmt.Println(err, "---er--")
 		return 0, err
 	}
 	return imgsTemp.Id, nil
+}
+
+func (dao *ImgsTempDao) GetImgsTempTotal(conditions map[string][]interface{}) (int64, error) {
+	Db := dao.DB.Model(&models.ImgsTemp{})
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ImgsFields{})
+	var count int64
+	err := Db.Count(&count).Error
+	return count, err
 }

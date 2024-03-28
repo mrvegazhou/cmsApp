@@ -17,6 +17,7 @@ upload:
   base_path: "/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile"
   image_max_size: 10
   key: "uploadKey123"
+  limit_num: 20
   image_allow_exts:
     - "jpg"
     - "png"

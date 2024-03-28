@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"cmsApp/configs"
 	"net/http"
+	"strings"
 
 	"cmsApp/pkg/jwt"
 
@@ -11,9 +13,9 @@ import (
 
 func JwtAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
-		token := c.Request.Header.Get("Authorization")
-		if len(token) == 0 {
+		auth := c.Request.Header.Get("Authorization")
+		token := strings.TrimPrefix(auth, "Bearer ")
+		if token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": constant.TOKEN_NIL,
 				"status":  http.StatusUnauthorized,
@@ -21,14 +23,14 @@ func JwtAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		payload, err := jwt.Check(token)
+		payload, err := jwt.Check(token, configs.App.Login.JwtSecret, false)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": err.Error(),
 			})
 			c.Abort()
 		}
-		c.Set("uid", payload.Id)
+		c.Set("uid", payload.ID)
 		c.Next()
 	}
 }

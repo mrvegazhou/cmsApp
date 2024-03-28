@@ -2,6 +2,7 @@ package user
 
 import (
 	"cmsApp/internal/controllers/api"
+	"cmsApp/internal/middleware"
 	"cmsApp/internal/models"
 	apiservice "cmsApp/internal/services/api"
 	"github.com/gin-gonic/gin"
@@ -16,8 +17,7 @@ func NewUserController() userController {
 }
 
 func (con userController) Routes(rg *gin.RouterGroup) {
-	//rg.POST("/info", middleware.JwtAuth(), con.info)
-	rg.POST("/info", con.info)
+	rg.POST("/info", middleware.JwtAuth(), con.info)
 	rg.POST("/search/name", con.searchName)
 	rg.POST("/search/trendingToday", con.search)
 }

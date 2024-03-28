@@ -19,6 +19,11 @@ type AppTagFields struct {
 	UpdateTime time.Time `gorm:"column:update_time" json:"updateTime,omitempty" label:"标签修改时间" name:"update_time"`
 }
 
+type AppTagInfo struct {
+	Id   uint64 `label:"标识" json:"id"`
+	Name string `label:"名称" json:"name"`
+}
+
 type AppTagReq struct {
 	Name string `label:"名称" json:"name"`
 }

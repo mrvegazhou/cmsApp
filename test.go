@@ -15,7 +15,10 @@ Encode 系列函数需要注意, 当使用返回两个结果的函数时候,
 package main
 
 import (
+	"cmsApp/pkg/jwt"
+	"fmt"
 	"github.com/disintegration/imaging"
+	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"github.com/pkg/errors"
@@ -24,8 +27,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	_ "image/jpeg"
-	"reflect"
+	"time"
 )
 
 func AddWatermarkForImage(oriImage image.Image, uid string) (*image.RGBA, error) {
@@ -129,21 +131,30 @@ func main() {
 	//fmt.Println(err)
 	//t1 := time.Now().Unix()     //获取本地现在时间
 	//time.Sleep(time.Second * 2) //延时2秒
-	//t2 := time.Now().Unix()
-	//fmt.Println(t2 - t1)
-	type A struct {
-		Field1 string
-		Field2 int
-	}
 
-	type B struct {
-		Field1 string
-		Field2 int
-		Field3 bool
+	//fmt.Println(AES.Encrypt("1765682539390832640", "SECRET"))
+	//fmt.Println(AES.Decrypt("U2FsdGVkX196f/da4WMJXfFWgYgrwLRsHNtEPvZHHI8=", "SECRET"))
+	//auth := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIyMDI1LTA5LTMwVDA4OjE5OjA3LjcwNDQ2MSswODowMCIsIm5hbWUiOiI1MTE3NDg4MjFAcXEuY29tIiwiaWQiOjExLCJhdWQiOiIiLCJzdWIiOiIiLCJpc3MiOiIiLCJpYXQiOiIwMDAxLTAxLTAxVDAwOjAwOjAwWiJ9.a72a18b99494394701956e6493c0850676d86447ca3a76d17d88409cc3aee82f"
+	//token := strings.TrimPrefix(auth, "Bearer ")
+	//token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIyMDI1LTA5LTMwVDEwOjAyOjUyLjMwOTU3OCswODowMCIsIm5hbWUiOiI1MTE3NDg4MjFAcXEuY29tIiwiaWQiOjExLCJhdWQiOiIiLCJzdWIiOiIiLCJpc3MiOiIiLCJpYXQiOiIwMDAxLTAxLTAxVDAwOjAwOjAwWiJ9.236d9176eb7005343f2a6eae9294374f21f8832255ef15b0f3786a2884c5d522"
+	//fmt.Println(token)
+	//
+	SetClaims := jwt.MyClaims{
+		Name: "name",
+		//Password: password,
+		RegisteredClaims: jwt2.RegisteredClaims{
+			ExpiresAt: jwt2.NewNumericDate(time.Now().Add(-1 * time.Second)), //有效时间
+			IssuedAt:  jwt2.NewNumericDate(time.Now()),                       //签发时间
+			NotBefore: jwt2.NewNumericDate(time.Now()),                       //生效时间
+			Issuer:    "abcde",                                               //签发人
+			Subject:   "somebody",                                            //主题
+			ID:        "1",                                                   //JWT ID用于标识该JWT
+			Audience:  []string{"somebody_else"},                             //用户
+		},
 	}
-
-	reflect.StructField{
-		A,
-		B,
-	}
+	token, err := jwt.Generate(SetClaims, "12345")
+	fmt.Println(token, err)
+	//token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiNTExNzQ4ODIxQHFxLmNvbSIsInN1YiI6ImNtcyIsImV4cCI6MTc1OTM1NjA1MywibmJmIjoxNzExNjM4MDUzLCJpYXQiOjE3MTE2MzgwNTMsImp0aSI6IjExIn0.7aypvjy1yxJBqJefAlrhqQGJkuWMM2AsvIkBJp1-hrs"
+	payload, err := jwt.Check(token, "12345", false)
+	fmt.Println(payload, err, "==payload==")
 }

@@ -25,20 +25,36 @@ type ArticleFields struct {
 	LikeCount       uint   `gorm:"column:like_count" json:"likeCount" form:"like_count" label:"点赞总量" name:"like_count"`
 	ShareCount      uint   `gorm:"column:share_count" json:"shareCount" form:"share_count" label:"分享总量" name:"share_count"`
 	// 1 草稿 2 正常
-	State      uint      `gorm:"column:state" json:"state" form:"state" label:"文章状态" name:"state"`
-	TypeId     uint      `gorm:"column:type_id" json:"typeId" form:"type_id" label:"文章类别" name:"type_id"`
-	CreateTime time.Time `gorm:"autoCreateTime;column:create_time;<-:create" json:"createTime" label:"文章创建时间" name:"create_time"`
-	UpdateTime time.Time `gorm:"column:update_time" json:"updateTime,omitempty" label:"文章修改时间" name:"update_time"`
-	DeleteTime time.Time `gorm:"column:delete_time;default:(-);" json:"-" name:"delete_time"`
+	State        uint      `gorm:"column:state" json:"state" form:"state" label:"文章状态" name:"state"`
+	TypeId       uint      `gorm:"column:type_id" json:"typeId" form:"type_id" label:"文章类别" name:"type_id"`
+	Tags         string    `gorm:"column:tags" json:"tags" form:"tags" label:"文章TAG" name:"tags"`
+	IsSetCatalog uint      `gorm:"column:is_set_catalog" json:"isSetCatalog" form:"isSetCatalog" label:"设置目录" name:"isSetCatalog"`
+	CreateTime   time.Time `gorm:"autoCreateTime;column:create_time;<-:create" json:"createTime" label:"文章创建时间" name:"create_time"`
+	UpdateTime   time.Time `gorm:"column:update_time" json:"updateTime,omitempty" label:"文章修改时间" name:"update_time"`
+	DeleteTime   time.Time `gorm:"column:delete_time;default:(-);" json:"-" name:"delete_time"`
 }
 
-type CollabArticleInfo struct {
-	TokenUrl string     `label:"协作地址" json:"tokenUrl"`
-	Info     AppArticle `label:"文章详情" json:"info"`
+type ArticleDraft struct {
+	ArticleId    uint64    `json:"articleId" form:"articleId" name:"articleId"`
+	Title        string    `form:"title" label:"文章标题" json:"title"`
+	Description  string    `json:"description" form:"description" label:"文章描述"`
+	AuthorId     uint64    `json:"authorId" form:"author_id" label:"作者标识"`
+	Content      string    `json:"content" form:"content" label:"文章内容"`
+	CoverUrl     string    `json:"coverUrl" form:"cover_url" label:"封面"`
+	State        uint      `json:"state" form:"state" label:"文章状态"`
+	TypeId       uint      `json:"typeId" form:"type_id" label:"文章类别"`
+	Tags         []uint64  `json:"tags" form:"tags" label:"文章TAG"`
+	IsSetCatalog int       `json:"isSetCatalog" form:"isSetCatalog" label:"设置目录"`
+	SaveType     string    `json:"saveType" form:"saveType" label:"客户端类型"`
+	CreateTime   time.Time `json:"createTime" label:"文章创建时间"`
 }
 
 type AppArticleReq struct {
-	ArticleId uint64 `form:"articleId" binding:"required" label:"文章标识" json:"articleId"`
+	ArticleId uint64 `form:"articleId" label:"文章标识" binding:"required" json:"articleId"`
+}
+
+type AppDraftInfoReq struct {
+	Id uint64 `form:"id" label:"草稿标识" binding:"required" json:"id"`
 }
 
 type AppArticleUploadImage struct {

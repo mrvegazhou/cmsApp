@@ -36,10 +36,30 @@ func (ser *apiTagService) GetTagList(name string) (appTagList []models.AppTag, e
 		conditions = map[string][]interface{}{
 			"name": {"like ?", "%" + name + "%"},
 		}
+		appTagList, err = ser.TagDao.GetTagList(conditions)
+		if err == gorm.ErrRecordNotFound {
+			return appTagList, nil
+		}
+		return appTagList, err
 	}
-	appTagList, err = ser.TagDao.GetTagList(conditions)
-	if err == gorm.ErrRecordNotFound {
+}
+
+func (ser *apiTagService) GetTagListByIds(ids []uint64) (appTagList []models.AppTag, err error) {
+	conditions := map[string][]interface{}{}
+	if len(ids) == 0 {
 		return appTagList, nil
+	} else {
+		conditions = map[string][]interface{}{
+			"id": {"in (?)", ids},
+		}
+		appTagList, err = ser.TagDao.GetTagList(conditions)
+		if err == gorm.ErrRecordNotFound {
+			return appTagList, nil
+		}
+		return appTagList, err
 	}
-	return appTagList, err
+}
+
+func (ser *apiTagService) GetTagInfo(id uint64) (appTagInfo models.AppTag, err error) {
+	return ser.TagDao.GetTagInfo(map[string]interface{}{"id": id})
 }

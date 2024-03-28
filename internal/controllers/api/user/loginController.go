@@ -5,11 +5,15 @@ import (
 	"cmsApp/internal/constant"
 	"cmsApp/internal/controllers/api"
 	"cmsApp/internal/errorx"
+	"cmsApp/internal/middleware"
 	"cmsApp/internal/models"
 	apiservice "cmsApp/internal/services/api"
+	"cmsApp/pkg/jwt"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type loginController struct {
@@ -24,10 +28,11 @@ func (con loginController) Routes(rg *gin.RouterGroup) {
 	rg.POST("/register/email", con.registerByEmail)
 	rg.POST("/login/email", con.loginByEmail)
 	rg.POST("/logout/email", con.logout)
+	// 此请求不进行token的过期判断
 	rg.POST("/token/refresh", con.refreshToken)
 	rg.POST("/publicKey/password", con.getPasswordPublicKey)
 	rg.POST("/email/code", con.sendEmailCode)
-	rg.POST("/change/newPassword", con.changeNewPwdByEmailCode)
+	rg.POST("/change/newPassword", middleware.JwtAuth(), con.changeNewPwdByEmailCode)
 	rg.POST("/captcha/get", con.slideCaptchaGet)
 	rg.POST("/captcha/check", con.slideCaptchaCheck)
 }
@@ -75,6 +80,7 @@ func (apicon loginController) registerByEmail(c *gin.Context) {
 // @response default {object} models.AppUserLoginRes
 // @Router /login/email [post]
 func (apicon loginController) loginByEmail(c *gin.Context) {
+
 	var (
 		err          error
 		req          models.AppUserLoginReq
@@ -116,6 +122,11 @@ func (apicon loginController) loginByEmail(c *gin.Context) {
 		apicon.Error(c, err, resp)
 		return
 	}
+
+	// 将 Cookie 添加到 HTTP 响应中
+	//c.SetSameSite(http.SameSiteNoneMode)
+	//c.SetCookie("refresh_token", refreshToken, int(30*24*60*60), "/", "localhost", false, false)
+
 	apicon.Success(c, resp)
 }
 
@@ -155,25 +166,37 @@ func (apicon loginController) logout(c *gin.Context) {
 // @Router /user/refresh [post]
 func (apicon loginController) refreshToken(c *gin.Context) {
 	var (
-		err   error
-		req   models.AppUserRefreshTokenReq
-		token string
+		err      error
+		req      models.AppUserRefreshTokenReq
+		newToken string
 	)
-
+	auth := c.Request.Header.Get("Authorization")
+	token := strings.TrimPrefix(auth, "Bearer ")
+	if token == "" {
+		apicon.Error(c, errors.New(constant.TOKEN_NIL), nil)
+		return
+	}
 	err = apicon.FormBind(c, &req)
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return
 	}
-
-	token, err = apiservice.NewApiLoginService().RefreshToken(req)
+	// 解析token
+	payload, err := jwt.Check(token, configs.App.Login.JwtSecret, true)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	uid := cast.ToUint64(payload.ID)
+	newToken, newRefreshToken, err := apiservice.NewApiLoginService().RefreshToken(uid, req)
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return
 	}
 
 	apicon.Success(c, gin.H{
-		"token": token,
+		"token":        newToken,
+		"refreshToken": newRefreshToken,
 	})
 }
 

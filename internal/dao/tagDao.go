@@ -37,9 +37,14 @@ func (dao *AppTagDao) GetTagList(conditions map[string][]interface{}) ([]models.
 	if len(conditions) > 0 {
 		Db = dao.ConditionWhere(Db, conditions, models.AppTagFields{})
 	}
-	Db = Db.Scopes(dao.Order("create_time desc"))
+	Db = Db.Scopes(dao.Order("id desc"))
 	if err := Db.Find(&appTag).Error; err != nil {
 		return appTag, err
 	}
 	return appTag, nil
+}
+
+func (dao *AppTagDao) GetTagInfo(conditions map[string]interface{}) (tag models.AppTag, err error) {
+	err = dao.DB.Where(conditions).First(&tag).Error
+	return
 }

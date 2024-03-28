@@ -1,104 +1,99 @@
 package jwt
 
 import (
-	"encoding/base64"
-	"encoding/json"
+	"cmsApp/configs"
+	"cmsApp/internal/constant"
 	"errors"
 	"fmt"
-	"strings"
+	jwtLib "github.com/golang-jwt/jwt/v5"
 	"time"
 )
 
-var secret string = "12345678"
-
-func Generate(secret, alg string, payload Payload) (string, error) {
-
-	var (
-		jtoken      string
-		header      Header
-		headerJson  string
-		payloadJson string
-		err         error
-		sign        string
-		builder     strings.Builder
-	)
-
-	header.Alg = alg
-	header.Typ = "JWT"
-	headerJson, err = header.Gen()
-	if err != nil {
-		return jtoken, err
+// 生成token
+func Generate(myClaims MyClaims, secret string) (string, error) {
+	if myClaims.IssuedAt == nil {
+		myClaims.IssuedAt = jwtLib.NewNumericDate(time.Now())
 	}
-
-	payloadJson, err = payload.Gen()
-	if err != nil {
-		return jtoken, err
+	if myClaims.NotBefore == nil {
+		myClaims.NotBefore = jwtLib.NewNumericDate(time.Now())
 	}
-
-	sign, err = Signature(headerJson, payloadJson, header.Alg, secret)
-	if err != nil {
-		fmt.Println(err)
+	if myClaims.ExpiresAt == nil {
+		myClaims.ExpiresAt = jwtLib.NewNumericDate(time.Now().Add(24 * time.Hour))
 	}
+	if myClaims.Subject == "" {
+		myClaims.Subject = "cms"
+	}
+	if secret == "" {
+		secret = configs.App.Login.JwtSecret
+	}
+	//SetClaims := MyClaims{
+	//	Name: name,
+	//	//Password: password,
+	//	RegisteredClaims: jwt.RegisteredClaims{
+	//		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), //有效时间
+	//		IssuedAt:  jwt.NewNumericDate(time.Now()),                     //签发时间
+	//		NotBefore: jwt.NewNumericDate(time.Now()),                     //生效时间
+	//		Issuer:    os.Getenv("JWT_ISSUER"),                            //签发人
+	//		Subject:   "somebody",                                         //主题
+	//		ID:        "1",                                                //JWT ID用于标识该JWT
+	//		Audience:  []string{"somebody_else"},                          //用户
+	//	},
+	//}
 
-	builder.WriteString(headerJson)
-	builder.WriteString(".")
-	builder.WriteString(payloadJson)
-	builder.WriteString(".")
-	builder.WriteString(sign)
+	//使用指定的加密方式和声明类型创建新令牌
+	tokenStruct := jwtLib.NewWithClaims(jwtLib.SigningMethodHS256, myClaims)
+	tokenStruct.Header["alg"] = "HS256" // 这通常是库自动设置的，但你可以覆盖它
+	tokenStruct.Header["typ"] = "JWT"   // JWT 类型
 
-	jtoken = builder.String()
-
-	return jtoken, err
+	//获得完整的、签名的令牌
+	token, err := tokenStruct.SignedString([]byte(secret))
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 /**
 * 校验jtoken
  */
-func Check(jtoken string) (payload Payload, err error) {
-	var (
-		secs     []string
-		header   Header
-		jsonByte []byte
-		sign     string
-	)
-	secs = strings.Split(jtoken, ".")
-
-	//解析header
-	jsonByte, err = base64.StdEncoding.DecodeString(secs[0])
+func Check(token string, secret string, unlimited bool) (*MyClaims, error) {
+	if secret == "" {
+		secret = configs.App.Login.JwtSecret
+	}
+	tokenObj, err := jwtLib.ParseWithClaims(token, &MyClaims{}, func(token *jwtLib.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
 	if err != nil {
-		return payload, err
+		if errors.Is(err, jwtLib.ErrTokenMalformed) {
+			// 令牌的结构不正确或格式有问题
+			return nil, errors.New(constant.TOKEN_MALFORMED_ERR)
+		} else if errors.Is(err, jwtLib.ErrTokenNotValidYet) {
+			// 令牌没有生效
+			return nil, errors.New(constant.TOKEN_NOT_VALID_YET)
+		} else if !errors.Is(err, jwtLib.ErrTokenExpired) {
+			fmt.Println(err)
+			return nil, errors.New(constant.TOKEN_CHECK_ERR)
+		}
+		if !unlimited {
+			if errors.Is(err, jwtLib.ErrTokenExpired) {
+				// 过期
+				return nil, errors.New(constant.TOKEN_EXPIRE)
+			}
+		}
 	}
-
-	err = json.Unmarshal(jsonByte, &header)
-	if err != nil {
-		return payload, err
+	claims, ok := tokenObj.Claims.(*MyClaims)
+	if ok && tokenObj.Valid {
+		return claims, nil
+	} else {
+		if !tokenObj.Valid {
+			if claims, ok := tokenObj.Claims.(*jwtLib.RegisteredClaims); ok {
+				if !unlimited && time.Now().After(claims.ExpiresAt.Time) {
+					return nil, errors.New(constant.TOKEN_EXPIRE)
+				} else {
+					return nil, errors.New(constant.TOKEN_CHECK_ERR)
+				}
+			}
+		}
 	}
-
-	//验证签名
-	sign, err = Signature(secs[0], secs[1], header.Alg, secret)
-	if err != nil {
-		return payload, err
-	}
-
-	if sign != secs[2] {
-		return payload, errors.New("jtoken签名验证失败")
-	}
-
-	//解析payload
-	jsonByte, err = base64.StdEncoding.DecodeString(secs[1])
-	if err != nil {
-		return payload, err
-	}
-
-	err = json.Unmarshal(jsonByte, &payload)
-	if err != nil {
-		return payload, err
-	}
-
-	//校验是否过期
-	if time.Until(payload.Exp).Minutes() < 0 {
-		return payload, errors.New("token已失效")
-	}
-
-	return payload, err
+	return nil, errors.New(constant.TOKEN_CHECK_ERR)
 }

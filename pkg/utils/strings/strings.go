@@ -2,11 +2,14 @@ package strings
 
 import (
 	"crypto/md5"
+	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -351,4 +354,50 @@ func CheckEmail(email string) bool {
 		return true
 	}
 	return false
+}
+
+func Str2rgb(text string) string {
+	s384 := sha512.New384()
+	s384.Write([]byte(text))
+	digest := hex.EncodeToString(s384.Sum(nil))
+
+	subSize := len(digest) / 3
+
+	mv := big.NewInt(math.MaxInt64)
+	mv.SetString(strings.Repeat("f", subSize), 16)
+
+	maxValue := big.NewFloat(math.MaxFloat64)
+	maxValue.SetInt(mv)
+
+	digests := make([]string, 3)
+	for i := 0; i < 3; i++ {
+		digests[i] = digest[i*subSize : (i+1)*subSize]
+	}
+
+	goldPoint := big.NewFloat(0.618033988749895)
+
+	rgbLst := make([]string, 3)
+	for i, v := range digests {
+		in := big.NewInt(math.MaxInt64)
+		in.SetString(v, 16)
+
+		inv := big.NewFloat(math.MaxFloat64)
+		inv.SetInt(in)
+
+		inf := big.NewFloat(math.MaxFloat64)
+		inf.Quo(inv, maxValue).Add(inf, goldPoint)
+
+		oneFloat := big.NewFloat(1)
+		cmp := inf.Cmp(oneFloat)
+		if cmp > -1 {
+			inf.Sub(inf, oneFloat)
+		}
+		inf.Mul(inf, big.NewFloat(255)).Add(inf, big.NewFloat(0.5)).Sub(inf, big.NewFloat(0.0000005))
+
+		i64, _ := inf.Int64()
+		//fmt.Println(i64)
+		rgbLst[i] = strconv.FormatInt(i64, 16)
+	}
+
+	return strings.Join(rgbLst, "")
 }

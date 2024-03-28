@@ -34,6 +34,7 @@ type Upload struct {
 	ImageAllowExts []string `yaml:"image_allow_exts" json:"imageAllowExts"`
 	ImageMaxSize   int      `yaml:"image_max_size" json:"imageMaxSize"`
 	Key            string   `yaml:"key" json:"key"`
+	LimitNum       int      `yaml:"limit_num" json:"limitNum"`
 }
 
 type Login struct {
