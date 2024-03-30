@@ -36,7 +36,7 @@ var (
 )
 
 func NewApiLoginService() *apiLoginService {
-	onceApiUserService.Do(func() {
+	onceApiLoginService.Do(func() {
 		instanceApiLoginService = &apiLoginService{
 			Dao: dao.NewAppUserDao(),
 		}
@@ -180,7 +180,7 @@ func (ser *apiLoginService) LoginByEmail(req models.AppUserLoginReq, ip string, 
 	if t > configTimes {
 		return userInfo, token, refreshToken, times, errors.New(constant.LOGIN_TIMES_ERR)
 	}
-
+	fmt.Println(email, originalPassword, ser.Dao, "===emailxxxxxxxxxxxxx===")
 	userInfo, err = ser.Dao.GetAppUser(map[string]interface{}{"email": email})
 	if err != nil {
 		times = ser.CheckLoginTimes(email, t, ip)

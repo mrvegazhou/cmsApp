@@ -24,11 +24,11 @@ func NewAppArticleHistoryDao() *AppArticleHistoryDao {
 	return instanceArticleHistory
 }
 
-func (dao *AppArticleHistoryDao) CreateArticleHistory(article models.AppArticleHistory) (uint64, error) {
-	if err := dao.DB.Create(&article).Error; err != nil {
+func (dao *AppArticleHistoryDao) CreateArticleHistory(articleHistory models.AppArticleHistory) (uint64, error) {
+	if err := dao.DB.Create(&articleHistory).Error; err != nil {
 		return 0, err
 	}
-	return article.Id, nil
+	return articleHistory.Id, nil
 }
 
 func (dao *AppArticleHistoryDao) GetArticleHistoryInfo(conditions map[string]interface{}) (articleHistory models.AppArticleHistory, err error) {

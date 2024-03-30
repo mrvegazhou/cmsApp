@@ -11,7 +11,8 @@ type CollabTokenInfo struct {
 	CursorColor string `label:"标识颜色" json:"cursorColor"`
 	IsCollab    bool   `label:"是否共享" json:"isCollab"`
 	Token       string `label:"token" json:"token"`
-	IsMe        bool   `lable:"是否为本人" josn:"isMe"`
+	IsMe        bool   `lable:"是否为本人" json:"isMe"`
+	User        string `lable:"用户" json:"user"`
 }
 
 type CollabToken struct {

@@ -56,10 +56,13 @@ func (ser *apiCollabService) JoinCollab(uid uint64, articleId uint64, userIds []
 	setKey := fmt.Sprintf("%s:%d:%d", constant.REDIS_COLLAB_USER, uid, articleId)
 	// 生成token
 	tokenKey := fmt.Sprintf("%s:%d:%d", constant.REDIS_COLLAB_TOKEN, uid, articleId)
-	tokenStr, tokenExp, err := ser.GenURlToken(uid, articleId, userIds, expireTime)
+	tokenStr, roomId, tokenExp, err := ser.GenURlToken(uid, articleId, userIds, expireTime)
 	if err != nil {
 		return "", fmt.Errorf("%s transaction(token): %w", constant.COLLAB_TOKEN_ERR, err)
 	}
+	// yjs 设置yjs的key的过期时间
+	ser.SetCollabKeyExpire(roomId, time.Now().Sub(tokenExp))
+
 	err = rdb.Watch(ctx, func(tx *redis.Tx) error {
 		_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 			_, err = pipe.SRem(ctx, setKey, ids...).Result()
@@ -113,17 +116,17 @@ func (ser *apiCollabService) ExitCollab(uid uint64, token string) error {
 	}
 	var ctx = context.Background()
 	setKey := fmt.Sprintf("%s:%d:%s", constant.REDIS_COLLAB_USER, uid, payload.Subject)
+	yjsMainCollabKey := fmt.Sprintf(constant.REDIS_COLLAB_UPDATES, roomName, "main")
+	yjsCommentCollabKey := fmt.Sprintf(constant.REDIS_COLLAB_UPDATES, roomName, "comment")
 	rdb := redisClient.GetRedisClient()
 	err = rdb.Watch(ctx, func(tx *redis.Tx) error {
 		_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 			_, err = pipe.Del(ctx, setKey).Result()
 			if err == nil {
-				setKey = fmt.Sprintf("%s:updates", roomName)
 				if roomName != "" {
-					_, err = pipe.Del(ctx, setKey).Result()
-					if err != nil {
-						return err
-					}
+					// 删除yjs的redis key
+					pipe.Del(ctx, yjsMainCollabKey).Result()
+					pipe.Del(ctx, yjsCommentCollabKey).Result()
 				}
 			}
 			return nil
@@ -161,6 +164,7 @@ func (ser *apiCollabService) ShowKeysCollab(uid uint64) (map[uint64]interface{},
 	}
 	// 去重
 	setIds := number.RemoveRepeatedInArr(userIds)
+
 	// in 查询用户列表
 	userList, err := NewApiUserService().GetUserList(setIds)
 	userMap := make(map[uint64]models.AppUser, len(userList))
@@ -210,15 +214,16 @@ func (ser *apiCollabService) ShowKeysCollab(uid uint64) (map[uint64]interface{},
 }
 
 // 生成邀请token
-func (ser *apiCollabService) GenURlToken(uid, articleId uint64, userIds []uint64, expireTime int64) (string, time.Time, error) {
+func (ser *apiCollabService) GenURlToken(uid, articleId uint64, userIds []uint64, expireTime int64) (string, string, time.Time, error) {
 	var myClaims jwt.MyClaims
 	var exp time.Time
 
 	secret := configs.App.Article.JwtSecret
 
 	// 房间名称
-	myClaims.Name = AES.Encrypt(snowflake.GenIDString(), secret)
-	// 本人id
+	roomId := snowflake.GenIDString()
+	myClaims.Name = AES.Encrypt(roomId, secret)
+	// 本人id 发布者
 	myClaims.Issuer = AES.Encrypt(cast.ToString(uid), secret)
 	// 主题 文章id 0标识没有发表的文章
 	myClaims.Subject = AES.Encrypt(cast.ToString(articleId), secret)
@@ -240,7 +245,17 @@ func (ser *apiCollabService) GenURlToken(uid, articleId uint64, userIds []uint64
 	myClaims.ExpiresAt = jwtLib.NewNumericDate(exp)
 
 	token, err := jwt.Generate(myClaims, secret)
-	return token, exp, err
+	return token, roomId, exp, err
+}
+
+// 设置y-redis的key过期时间
+func (ser *apiCollabService) SetCollabKeyExpire(roomId string, ttl time.Duration) {
+	mainKey := fmt.Sprintf(constant.REDIS_COLLAB_UPDATES, roomId, "main")
+	commentKey := fmt.Sprintf(constant.REDIS_COLLAB_UPDATES, roomId, "comment")
+	var ctx = context.Background()
+	rdb := redisClient.GetRedisClient()
+	rdb.Expire(ctx, mainKey, ttl).Err()
+	rdb.Expire(ctx, commentKey, ttl).Err()
 }
 
 func (ser *apiCollabService) CheckCollabToken(userId uint64, token string) models.CollabTokenInfo {
@@ -262,6 +277,7 @@ func (ser *apiCollabService) CheckCollabToken(userId uint64, token string) model
 			tokenInfo.CursorColor = stringsx.Str2rgb(userInfo.Nickname)
 			tokenInfo.UserName = userInfo.Nickname
 			tokenInfo.Token = token
+			tokenInfo.User = AES.Encrypt(cast.ToString(userInfo.Id), secret)
 		}
 	}
 

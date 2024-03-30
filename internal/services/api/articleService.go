@@ -142,6 +142,7 @@ func (ser *apiArticleService) SaveArticleDraft(userId uint64, req models.Article
 		}
 		article.Id = id
 	}
+
 	// 保存草稿到历史 判断内容是否相同，相同则更新时间，不同则增添一条新记录
 	lastHistory, err := ser.ArticleHistoryDao.GetLastArticleHistoryInfo()
 	if strings.Compare(lastHistory.Content, req.Content) == 0 {

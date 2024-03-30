@@ -93,9 +93,8 @@ func (apicon collabController) exitCollab(c *gin.Context) {
 		req models.CollabToken
 	)
 
-	//userId, _ := c.Get("uid")
-	userId := uint64(3)
-	err = apiservice.NewApiCollabService().ExitCollab(userId, req.Token)
+	userId, _ := c.Get("uid")
+	err = apiservice.NewApiCollabService().ExitCollab(cast.ToUint64(userId), req.Token)
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return

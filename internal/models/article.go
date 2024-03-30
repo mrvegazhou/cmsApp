@@ -45,7 +45,7 @@ type ArticleDraft struct {
 	TypeId       uint      `json:"typeId" form:"type_id" label:"文章类别"`
 	Tags         []uint64  `json:"tags" form:"tags" label:"文章TAG"`
 	IsSetCatalog int       `json:"isSetCatalog" form:"isSetCatalog" label:"设置目录"`
-	SaveType     string    `json:"saveType" form:"saveType" label:"客户端类型"`
+	SaveType     int       `json:"saveType" form:"saveType" label:"客户端类型"`
 	CreateTime   time.Time `json:"createTime" label:"文章创建时间"`
 }
 

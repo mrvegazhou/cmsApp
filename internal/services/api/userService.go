@@ -3,6 +3,7 @@ package api
 import (
 	"cmsApp/internal/dao"
 	"cmsApp/internal/models"
+	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -40,6 +41,7 @@ func (ser *apiUserService) GetUserInfoRes(condition map[string]interface{}) (use
 }
 
 func (ser *apiUserService) SearchUserList(name string, pageParam int, pageSizeParam int) (userList []models.AppUser, page int, totalPage int, err error) {
+	fmt.Println(name, pageParam, pageSizeParam, "==s===")
 	userList, page, totalPage, err = ser.Dao.SearchUserList(name, pageParam, pageSizeParam)
 	if err == gorm.ErrRecordNotFound {
 		return userList, page, totalPage, nil

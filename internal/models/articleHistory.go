@@ -20,7 +20,7 @@ type ArticleHistoryFields struct {
 	Content      string    `gorm:"column:content;not null" json:"content" form:"content" label:"文章内容" name:"content"`
 	CoverUrl     string    `gorm:"column:cover_url;not null" json:"coverUrl" form:"cover_url" label:"封面" name:"cover_url"`
 	TypeId       uint      `gorm:"column:type_id" json:"typeId" form:"type_id" label:"文章类别" name:"type_id"`
-	SaveType     string    `gorm:"column:save_type" json:"saveType" form:"SaveType" label:"保存方式" name:"save_type"`
+	SaveType     uint      `gorm:"column:save_type" json:"saveType" form:"SaveType" label:"保存方式" name:"save_type"`
 	SourceType   string    `gorm:"column:source_type" json:"sourceType" form:"sourceType" label:"保存来源" name:"save_type"`
 	Tags         string    `gorm:"column:tags" json:"tags" form:"tags" label:"文章TAG" name:"tags"`
 	IsSetCatalog uint      `gorm:"column:is_set_catalog" json:"isSetCatalog" form:"isSetCatalog" label:"设置目录" name:"isSetCatalog"`
@@ -37,7 +37,7 @@ type ArticleHistoryResp struct {
 	Content      string       `json:"content" form:"content" label:"文章内容"`
 	CoverUrl     string       `json:"coverUrl" form:"cover_url" label:"封面"`
 	TypeId       uint         `json:"typeId" form:"type_id" label:"文章类别"`
-	SaveType     string       `json:"saveType" form:"SaveType" label:"保存方式"`
+	SaveType     uint         `json:"saveType" form:"SaveType" label:"保存方式"`
 	SourceType   string       `json:"sourceType" form:"sourceType" label:"保存来源"`
 	Tags         []AppTagInfo `json:"tags" form:"tags" label:"文章TAGS"`
 	IsSetCatalog uint         `json:"isSetCatalog" form:"isSetCatalog" label:"设置目录"`
