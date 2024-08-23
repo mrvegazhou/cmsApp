@@ -30,10 +30,10 @@ type UserFields struct {
 type AppUserInfo struct {
 	Id        uint64 `json:"id" form:"id"`
 	Nickname  string `json:"nickname" form:"nickanme"`
-	Phone     string `json:"phone" form:"phone"`
+	Phone     string `json:"phone" form:"phone" label:"手机号"`
 	About     string `json:"about" form:"about"`
-	AvatarUrl string `json:"avatarUrl" form:"avatarUrl"`
-	Email     string `json:"email" form:"email"`
+	AvatarUrl string `json:"avatarUrl" form:"avatarUrl" label:"头像"`
+	Email     string `json:"email" form:"email" label:"邮箱"`
 }
 
 type AppUserRes struct {

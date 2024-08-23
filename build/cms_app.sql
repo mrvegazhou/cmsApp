@@ -413,8 +413,24 @@ ALTER TABLE "cms_app"."site_config" ADD CONSTRAINT "sys_config_pkey" PRIMARY KEY
 -- ----------------------------
 ALTER TABLE "cms_app"."site_info" ADD CONSTRAINT "app_introduce_pkey" PRIMARY KEY ("id");
 
+-- 建立索引
 CREATE INDEX idx_name ON "cms_app"."app_imgs" (name);
 CREATE INDEX idx_email ON "cms_app"."app_user" (email);
 CREATE INDEX idx_name_temp ON "cms_app"."app_imgs_temp" (name);
+CREATE INDEX idx_resource_id_temp ON "cms_app"."app_imgs_temp" (resource_id);
 CREATE INDEX idx_article_id ON "cms_app"."app_article_history" (article_id);
 
+-- 建立约束
+ALTER TABLE "cms_app"."app_article_reply" ADD CONSTRAINT content_check CHECK (length(content) <= 1500);
+ALTER TABLE "cms_app"."app_article_comment" ADD CONSTRAINT content_check CHECK (length(content) <= 1500);
+
+
+-- nextval('cms_app.app_article_reply_id_seq'::regclass)
+DROP SEQUENCE IF EXISTS "cms_app"."app_report_id_seq";
+CREATE SEQUENCE "cms_app"."app_article_reply_id_seq"
+    INCREMENT 1
+MINVALUE  1
+START 1
+CACHE 1;
+ALTER SEQUENCE "cms_app"."app_article_reply_id_seq"
+    OWNER TO "postgres";

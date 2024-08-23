@@ -27,17 +27,17 @@ type ImgsFields struct {
 }
 
 type ImgsListResp struct {
-	Id         uint64    `label:"序列" json:"id"`
-	Name       string    `label:"图片名称" json:"name"`
-	Tags       string    `label:"名称" json:"tags"`
-	Type       uint      `label:"类型" json:"type"`
-	Width      int       `label:"宽" json:"width"`
-	Height     int       `label:"高" json:"height"`
+	Id         uint64    `label:"序列" json:"id" form:"id"`
+	Name       string    `label:"图片名称" json:"name" form:"name"`
+	Tags       string    `label:"名称" json:"tags" form:"tags"`
+	Type       uint      `label:"类型" json:"type" form:"type"`
+	Width      int       `label:"宽" json:"width" form:"width"`
+	Height     int       `label:"高" json:"height" form:"height"`
 	CreateTime time.Time `label:"创建时间" json:"createTime"`
 }
 
 type ImgReq struct {
-	Name string `label:"图片名称" json:"name"`
+	Name string `label:"图片名称" json:"name" form:"name"`
 }
 
 func (img *Imgs) TableName() string {

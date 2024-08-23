@@ -6,6 +6,7 @@ import (
 	"cmsApp/internal/dao"
 	"cmsApp/internal/models"
 	"cmsApp/pkg/utils/arrayx"
+	"cmsApp/pkg/utils/imagex"
 	"errors"
 	"github.com/jinzhu/copier"
 	"github.com/spf13/cast"
@@ -114,6 +115,7 @@ func (ser *apiArticleService) UploadCoverImage(req models.AppArticleUploadImage,
 	return req.ArticleId, fullPath, imgName, fileName, nil
 }
 
+// 保存草稿
 func (ser *apiArticleService) SaveArticleDraft(userId uint64, req models.ArticleDraft) (article models.AppArticle, err error) {
 	copier.CopyWithOption(&article, req, copier.Option{IgnoreEmpty: true, DeepCopy: true})
 	if len(req.Tags) > 0 {
@@ -126,6 +128,9 @@ func (ser *apiArticleService) SaveArticleDraft(userId uint64, req models.Article
 		coverUrl := strings.Split(req.CoverUrl, "/")
 		article.CoverUrl = coverUrl[len(coverUrl)-1]
 	}
+	if req.Marks != "" {
+		article.Marks = req.Marks
+	}
 	article.State = 1
 	article.UpdateTime = time.Now()
 	// 保存文章
@@ -133,7 +138,20 @@ func (ser *apiArticleService) SaveArticleDraft(userId uint64, req models.Article
 		if req.ArticleId <= 0 {
 			return article, errors.New(constant.ARTICLE_UPDATE_ERR)
 		}
-		ser.Dao.UpdateArticle(req.ArticleId, article)
+		// 检查是否存在文章
+		articleInfo, err := ser.Dao.GetAppArticle(map[string]interface{}{
+			"id": req.ArticleId,
+		})
+		if err == gorm.ErrRecordNotFound {
+			return article, errors.New(constant.ARTICLE_UPDATE_ERR)
+		}
+		// 更新
+		if err == nil {
+			ser.Dao.UpdateArticle(req.ArticleId, article)
+			article.Id = articleInfo.Id
+		} else {
+			return article, errors.New(constant.ARTICLE_UPDATE_ERR)
+		}
 	} else {
 		article.CreateTime = time.Now()
 		id, err := ser.Dao.CreateAppArticle(article)
@@ -142,10 +160,9 @@ func (ser *apiArticleService) SaveArticleDraft(userId uint64, req models.Article
 		}
 		article.Id = id
 	}
-
 	// 保存草稿到历史 判断内容是否相同，相同则更新时间，不同则增添一条新记录
 	lastHistory, err := ser.ArticleHistoryDao.GetLastArticleHistoryInfo()
-	if strings.Compare(lastHistory.Content, req.Content) == 0 {
+	if strings.Compare(lastHistory.Content, req.Content) == 0 && strings.Compare(lastHistory.Title, req.Title) == 0 {
 		ser.ArticleHistoryDao.UpdateColumns(map[string]interface{}{
 			"id": lastHistory.Id,
 		}, map[string]interface{}{
@@ -157,11 +174,73 @@ func (ser *apiArticleService) SaveArticleDraft(userId uint64, req models.Article
 		draftHistory.Id = 0
 		draftHistory.CreateTime = time.Now()
 		draftHistory.Tags = article.Tags
+		draftHistory.ArticleId = article.Id
 		draftHistory.AuthorId = userId
 		_, err = ser.ArticleHistoryDao.CreateArticleHistory(draftHistory)
 		if err != nil {
 			return article, errors.New(constant.ARTICLE_DRAFT_HISTORY_ERR)
 		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		// 删除多余草稿
+		ser.GetDraftHistoryInfo(article.Id)
+		wg.Done()
+	}()
+	wg.Wait()
+	return article, nil
+}
+
+// 发布文章
+func (ser *apiArticleService) SaveArticle(userId uint64, req models.Article) (article models.AppArticle, err error) {
+	copier.CopyWithOption(&article, req, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+	if len(req.Tags) > 0 {
+		article.Tags = arrayx.JoinIntArr2Str(req.Tags)
+	}
+	if req.AuthorId <= 0 {
+		article.AuthorId = userId
+	}
+	if req.CoverUrl != "" {
+		coverUrl := strings.Split(req.CoverUrl, "/")
+		article.CoverUrl = coverUrl[len(coverUrl)-1]
+	}
+	if req.Marks != "" {
+		article.Marks = req.Marks
+	}
+	article.State = 2
+	now := time.Now()
+	article.UpdateTime = now
+	article.CreateTime = now
+	// 保存文章
+	if req.Id != 0 {
+		// 检查是否存在文章
+		articleInfo, err := ser.Dao.GetAppArticle(map[string]interface{}{
+			"id": req.Id,
+		})
+		if err == gorm.ErrRecordNotFound {
+			return article, errors.New(constant.ARTICLE_SAVE_ERR)
+		}
+		// 更新
+		if err == nil {
+			ser.Dao.UpdateArticle(req.Id, article)
+			article.Id = articleInfo.Id
+		} else {
+			return article, errors.New(constant.ARTICLE_SAVE_ERR)
+		}
+	} else {
+		id, err := ser.Dao.CreateAppArticle(article)
+		if err != nil {
+			return article, errors.New(constant.ARTICLE_SAVE_ERR)
+		}
+		article.Id = id
+	}
+	// 检查图片，删除多余
+	imgs := imagex.ExtractImageSrcs(article.Content)
+	err = NewApiImgsTempService().move2ArticleImgs(imgs, article.Id)
+	if err != nil {
+		return article, err
 	}
 	return article, nil
 }
@@ -188,6 +267,29 @@ func (ser *apiArticleService) GetDraftHistoryList(articleId uint64) ([]models.Ap
 		return ser.ArticleHistoryDao.GetArticleHistoryList(conditions)
 	} else {
 		return []models.AppArticleHistory{}, errors.New(constant.ARTICLE_DARFT_PARAM_ERR)
+	}
+}
+
+// 判断草稿本是否满50条，超出删除多余的
+func (ser *apiArticleService) DelExcessArticles(articleId uint64) {
+	conditions := map[string][]interface{}{
+		"article_id": {"= ?", articleId},
+	}
+	list, err := ser.ArticleHistoryDao.GetArticleHistoryList(conditions)
+	if err == nil {
+		if len(list) >= 50 {
+			var ids []uint64
+			for i, item := range list {
+				if i > 50 {
+					ids = append(ids, item.Id)
+				}
+			}
+			// 删除
+			conditions = map[string][]interface{}{
+				"id": {"in ?", ids},
+			}
+			ser.ArticleHistoryDao.DelArticleHistory(conditions)
+		}
 	}
 }
 

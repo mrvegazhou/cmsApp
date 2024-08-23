@@ -38,3 +38,23 @@ func (dao *ImgsTempDao) GetImgsTempTotal(conditions map[string][]interface{}) (i
 	err := Db.Count(&count).Error
 	return count, err
 }
+
+func (dao *ImgsTempDao) GetImgs(conditions map[string][]interface{}) ([]models.ImgsTemp, error) {
+	imgs := []models.ImgsTemp{}
+	Db := dao.DB
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ImgsFields{})
+	if err := Db.Find(&imgs).Error; err != nil {
+		return imgs, err
+	}
+	return imgs, nil
+}
+
+func (dao *ImgsTempDao) DeleteImage(conditions map[string][]interface{}) error {
+	Db := dao.DB
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ImgsFields{})
+	err := Db.Delete(&models.ImgsTemp{}).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -15,6 +15,8 @@ import (
 	"log"
 	"mime/multipart"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -113,4 +115,14 @@ func IsImage(filePath string) bool {
 		}
 	}
 	return true
+}
+
+func ExtractImageSrcs(htmls string) []string {
+	var imgRE = regexp.MustCompile(`<img[^>]+\bsrc=["']([^"']+)["']`)
+	imgs := imgRE.FindAllStringSubmatch(htmls, -1)
+	out := make([]string, 0, len(imgs))
+	for i := range imgs {
+		out = append(out, filepath.Base(imgs[i][1]))
+	}
+	return out
 }

@@ -36,6 +36,14 @@ func (dao *ImgsDao) CreateImage(image models.Imgs) (uint64, error) {
 	return image.Id, nil
 }
 
+// 批量插入
+func (dao *ImgsDao) CreateImages(images []models.Imgs) error {
+	if err := dao.DB.Create(&images).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (dao *ImgsDao) GetImgs(conditions map[string][]interface{}, pageParam int, pageSizeParam int) ([]models.Imgs, int, int, error) {
 	imgs := []models.Imgs{}
 	Db := dao.DB

@@ -243,6 +243,17 @@ func GetUploadDirs2(name1 string, name2 string) (string, string) {
 	return dir1, dir2
 }
 
+func IsDirEmpty(dir string) (bool, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return true, nil // 目录不存在，可以认为是空的
+		}
+		return false, err
+	}
+	return len(entries) == 0, nil
+}
+
 func main() {
 	fmt.Println(FileExists("/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile/2/0/1720020024615243776.png"))
 }

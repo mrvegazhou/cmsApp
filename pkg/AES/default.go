@@ -29,13 +29,13 @@ func Encrypt(text string, passphrase string) string {
 	encrypted := make([]byte, len(pad))
 	ecb.CryptBlocks(encrypted, pad)
 
-	return b64.StdEncoding.EncodeToString([]byte("Salted__" + string(salt) + string(encrypted)))
+	return b64.StdEncoding.EncodeToString([]byte("S_" + string(salt) + string(encrypted)))
 }
 
 // Decrypts encrypted text with the passphrase
 func Decrypt(encrypted string, passphrase string) string {
 	ct, _ := b64.StdEncoding.DecodeString(encrypted)
-	if len(ct) < 16 || string(ct[:8]) != "Salted__" {
+	if len(ct) < 16 || string(ct[:8]) != "S_" {
 		return ""
 	}
 

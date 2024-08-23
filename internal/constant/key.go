@@ -17,4 +17,6 @@ const (
 	REDIS_COLLAB_TOKEN = "collab:token"
 
 	REDIS_COLLAB_UPDATES = "collab/%s/%s:updates" // roomid 类型
+
+	ARTICLE_ID_SECRET = "article"
 )

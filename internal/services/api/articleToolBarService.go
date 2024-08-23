@@ -13,6 +13,7 @@ type apiArticleToolBarService struct {
 	ArticleLikeDao      *dao.AppArticleLikeDao
 	ArticleFavoritesDao *dao.AppArticleFavoritesDao
 	FavoritesDao        *dao.AppFavoritesDao
+	ArticleDao          *dao.AppArticleDao
 }
 
 var (
@@ -26,6 +27,7 @@ func NewApiArticleToolBarService() *apiArticleToolBarService {
 			ArticleLikeDao:      dao.NewAppArticleLikeDao(),
 			ArticleFavoritesDao: dao.NewAppArticleFavoritesDao(),
 			FavoritesDao:        dao.NewAppFavoritesDao(),
+			ArticleDao:          dao.NewAppArticleDao(),
 		}
 	})
 	return instanceApiArticleToolBarService
@@ -55,8 +57,8 @@ func (ser *apiArticleToolBarService) GetArticleToolBarData(articleId, userId uin
 	} else {
 		toolBarData.IsLiked = true
 	}
+	// 收藏夹列表
 	favorites, err := ser.FavoritesDao.GetFavoritesByUser(userId)
-
 	if err != nil {
 		toolBarData.IsCollected = false
 		toolBarData.Favorites = map[uint64]models.AppFavoritesItem{}
@@ -86,6 +88,18 @@ func (ser *apiArticleToolBarService) GetArticleToolBarData(articleId, userId uin
 			}
 			toolBarData.Favorites = favHasCheckedMap
 		}
+	}
+
+	// 喜欢数 评论数 收藏数
+	condition := map[string]interface{}{
+		"id": articleId,
+	}
+	articleInfo, err := ser.ArticleDao.GetAppArticle(condition)
+	if err == nil {
+		toolBarData.CommentCount = articleInfo.CommentCount
+		toolBarData.LikeCount = articleInfo.LikeCount
+		toolBarData.CollectionCount = articleInfo.CollectionCount
+		toolBarData.ShareCount = articleInfo.ShareCount
 	}
 	return toolBarData
 }

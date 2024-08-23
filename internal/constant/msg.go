@@ -41,15 +41,25 @@ const (
 	REGISTER_LIMIT_RATE_ERR         = "注册次数过于频繁"
 	CAPTCHA_DO_ERR                  = "请重新验证"
 
+	ARTICLE_ID_ERR            = "获取文章标识失败"
 	ARTICLE_LIKE_ERR          = "点赞失败"
 	ARTICLE_UNLIKE_ERR        = "取消点赞失败"
 	ARTICLE_UPDATE_ERR        = "更新文章失败"
-	ARTICLE_SAVE_ERR          = "保存文章失败"
+	ARTICLE_SAVE_ERR          = "发布文章失败"
 	ARTICLE_AUTHOR_ERR        = "文章作者缺失"
 	ARTICLE_CHECK_LIKE_ERR    = "检查是否点赞失败"
 	ARTICLE_DRAFT_HISTORY_ERR = "文章保存到历史记录失败"
 
 	ARTICLE_DARFT_PARAM_ERR = "获取文章历史编辑参数错误"
+
+	ARTICLE_COMMENT_ARTICLE_ERR       = "文章不存在"
+	ARTICLE_COMMENT_CONTENT_LEN_ERR   = "评论字数超过%d"
+	ARTICLE_COMMENT_CONTENT_EMPTY_ERR = "评论内容不能为空"
+	ARTICLE_COMMENT_USER_EMPTY_ERR    = "评论人不能为空"
+	ARTICLE_REPLY_USER_EMPTY_ERR      = "帖子评论人不能为空"
+	ARTICLE_REPLY_CONTENT_EMPTY_ERR   = "帖子评论内容不能为空"
+	ARTICLE_REPLY_CONTENT_LEN_ERR     = "帖子评论字数超过%d"
+	ARTICLE_REPLY_COMMENT_ID_ERR      = "帖子不存在"
 
 	GET_CURRENT_PATH_ERR = "获取当前路径失败"
 	IMAGE_UPLOAD_ERR     = "上传图片失败"

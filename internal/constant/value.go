@@ -1,0 +1,6 @@
+package constant
+
+const (
+	ARTICLE_COMMENT_CONTENT_LEN_LIMIT = 1500
+	ARTICLE_COMMENT_PAGE_SIZE         = 15
+)

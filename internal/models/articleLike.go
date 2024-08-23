@@ -19,9 +19,14 @@ type AppArticleLikeReq struct {
 }
 
 type AppArticleToolBarDataResp struct {
-	IsLiked     bool                        `label:"是否点赞" json:"isLiked"`
-	IsCollected bool                        `label:"是否收藏" json:"isCollected"`
-	Favorites   map[uint64]AppFavoritesItem `label:"收藏夹" json:"favorites"`
+	IsLiked         bool                        `label:"是否点赞" json:"isLiked"  form:"isLiked"`
+	IsCollected     bool                        `label:"是否收藏" json:"isCollected" form:"isCollected"`
+	Favorites       map[uint64]AppFavoritesItem `label:"收藏夹" json:"favorites" form:"favorites"`
+	IsReport        bool                        `label:"举报" json:"isReport" form:"isReport"`
+	LikeCount       uint                        `label:"喜欢数" json:"likeCount" form:"likeCount"`
+	CommentCount    uint                        `label:"评论数" json:"commentCount" form:"commentCount"`
+	CollectionCount uint                        `label:"收藏数" json:"collectionCount" form:"collectionCount"`
+	ShareCount      uint                        `label:"分享数" json:"shareCount" form:"shareCount"`
 }
 
 func (articleLike *AppArticleLike) TableName() string {
