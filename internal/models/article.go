@@ -3,7 +3,6 @@ package models
 import (
 	"cmsApp/pkg/postgresqlx"
 	"gorm.io/gorm"
-	"mime/multipart"
 	"time"
 )
 
@@ -21,6 +20,7 @@ type ArticleFields struct {
 	CoverUrl        string `gorm:"column:cover_url;not null" json:"coverUrl" form:"coverUrl" label:"封面" name:"cover_url"`
 	ViewCount       uint   `gorm:"column:view_count" json:"viewCount" form:"viewCount" label:"阅读总量" name:"view_count"`
 	CommentCount    uint   `gorm:"column:comment_count;not null" json:"commentCount" form:"commentCount" label:"评论总量" name:"comment_count"`
+	ReplyCount      uint   `gorm:"column:reply_count;not null" json:"replyCount" form:"replyCount" label:"评论总量" name:"reply_count"`
 	CollectionCount uint   `gorm:"column:collection_count" json:"collectionCount" form:"collectionCount" label:"收藏总量" name:"collection_count"`
 	LikeCount       uint   `gorm:"column:like_count" json:"likeCount" form:"likeCount" label:"点赞总量" name:"like_count"`
 	ShareCount      uint   `gorm:"column:share_count" json:"shareCount" form:"shareCount" label:"分享总量" name:"share_count"`
@@ -77,13 +77,6 @@ type AppArticleReq struct {
 
 type AppDraftInfoReq struct {
 	Id uint64 `form:"id" label:"草稿标识" binding:"required" json:"id"`
-}
-
-type AppArticleUploadImage struct {
-	File      *multipart.FileHeader `form:"file0" label:"文件" binding:"required" label:"文件"`
-	ArticleId uint64                `form:"articleId" label:"文件标识"`
-	Tags      string                `form:"tags" label:"文件标签"`
-	Type      uint                  `form:"type" label:"图片类别"`
 }
 
 type AppArticleImgsReq struct {

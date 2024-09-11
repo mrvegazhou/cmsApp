@@ -2,7 +2,7 @@ package filesystem
 
 import (
 	"cmsApp/internal/constant"
-	stringsx "cmsApp/pkg/utils/strings"
+	"cmsApp/pkg/utils/stringx"
 	"errors"
 	"fmt"
 	"io"
@@ -218,7 +218,7 @@ func GetUploadDirs(name string) (string, string) {
 	if name == "" {
 		return "", ""
 	}
-	code := stringsx.GetHashCode(name)
+	code := stringx.GetHashCode(name)
 	// 第一层目录 清除后四个bit位  也可以写成 x &= 0xf
 	x := int(code) & 0xf
 	dir1 := fmt.Sprintf("%x", x)
@@ -232,8 +232,8 @@ func GetUploadDirs2(name1 string, name2 string) (string, string) {
 	if name1 == "" || name2 == "" {
 		return "", ""
 	}
-	code1 := stringsx.GetHashCode(name1)
-	code2 := stringsx.GetHashCode(name2)
+	code1 := stringx.GetHashCode(name1)
+	code2 := stringx.GetHashCode(name2)
 	// 第一层目录 清除后四个bit位  也可以写成 x &= 0xf
 	x := (int(code1) >> 4) & 0xf
 	dir1 := fmt.Sprintf("%x", x)

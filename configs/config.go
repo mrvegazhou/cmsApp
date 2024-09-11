@@ -30,11 +30,12 @@ type Article struct {
 	JwtSecret string `yaml:"jwt_secret" json:"jwt_secret"`
 }
 type Upload struct {
-	BasePath       string   `yaml:"base_path" json:"basePath"`
-	ImageAllowExts []string `yaml:"image_allow_exts" json:"imageAllowExts"`
-	ImageMaxSize   int      `yaml:"image_max_size" json:"imageMaxSize"`
-	Key            string   `yaml:"key" json:"key"`
-	LimitNum       int      `yaml:"limit_num" json:"limitNum"`
+	BasePath        string   `yaml:"base_path" json:"basePath"`
+	ImageAllowExts  []string `yaml:"image_allow_exts" json:"imageAllowExts"`
+	ImageMaxSize    int      `yaml:"image_max_size" json:"imageMaxSize"`
+	Key             string   `yaml:"key" json:"key"`
+	LimitNum        int      `yaml:"limit_num" json:"limitNum"`
+	ImgCookieSecret string   `yaml:"img_cookie_secret" json:"img_cookie_secret"`
 }
 
 type Login struct {

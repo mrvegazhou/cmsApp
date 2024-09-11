@@ -39,6 +39,11 @@ func (dao *ImgsTempDao) GetImgsTempTotal(conditions map[string][]interface{}) (i
 	return count, err
 }
 
+func (dao *ImgsTempDao) GetImgInfo(conditions map[string]interface{}) (info models.ImgsTemp, err error) {
+	err = dao.DB.Where(conditions).First(&info).Error
+	return
+}
+
 func (dao *ImgsTempDao) GetImgs(conditions map[string][]interface{}) ([]models.ImgsTemp, error) {
 	imgs := []models.ImgsTemp{}
 	Db := dao.DB

@@ -11,7 +11,6 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -69,10 +68,11 @@ func (ser *apiArticleService) CheckUploadLimitNum(userId uint64) (bool, error) {
 	}
 }
 
-func (ser *apiArticleService) UploadImage(req models.AppArticleUploadImage, userId uint64) (articleId uint64, fullPath string, imgName string, fileName string, err error) {
+func (ser *apiArticleService) UploadImage(req models.AppImgTempUploadReq, userId uint64) (articleId uint64, fullPath string, imgName string, fileName string, err error) {
 	fullPath = ""
 	fileName = req.File.Filename
-	if req.ArticleId <= 0 {
+	resourceId := cast.ToUint64(req.ResourceId)
+	if resourceId <= 0 {
 		// 生成空文章信息
 		article := models.AppArticle{}
 		article.State = 1
@@ -83,18 +83,19 @@ func (ser *apiArticleService) UploadImage(req models.AppArticleUploadImage, user
 		if err != nil {
 			return articleId, fullPath, imgName, fileName, errors.New(constant.ARTICLE_SAVE_ERR)
 		}
-		req.ArticleId = articleId
+		req.ResourceId = cast.ToString(articleId)
 	}
-	_, imgPath, imgName, err := NewApiImgsService().SaveImage(req, userId)
+	// 存储到临时图片表
+	_, _, imgName, fullPath, err = NewApiImgsTempService().SaveImage(req, userId)
 	if err != nil {
-		return req.ArticleId, fullPath, imgName, fileName, err
+		return resourceId, fullPath, imgName, fileName, err
 	}
-	fullPath, _ = url.JoinPath(imgPath, imgName)
-	return req.ArticleId, fullPath, imgName, fileName, nil
+	return resourceId, fullPath, imgName, fileName, nil
 }
 
-func (ser *apiArticleService) UploadCoverImage(req models.AppArticleUploadImage, userId uint64) (articleId uint64, fullPath string, imgName string, fileName string, err error) {
-	if req.ArticleId <= 0 {
+func (ser *apiArticleService) UploadCoverImage(req models.AppImgTempUploadReq, userId uint64) (articleId uint64, fullPath string, imgName string, fileName string, err error) {
+	resourceId := cast.ToUint64(req.ResourceId)
+	if resourceId <= 0 {
 		// 生成空文章信息
 		article := models.AppArticle{}
 		article.State = 1
@@ -105,14 +106,13 @@ func (ser *apiArticleService) UploadCoverImage(req models.AppArticleUploadImage,
 		if err != nil {
 			return articleId, fullPath, imgName, fileName, errors.New(constant.ARTICLE_SAVE_ERR)
 		}
-		req.ArticleId = articleId
+		req.ResourceId = cast.ToString(articleId)
 	}
-	_, imgPath, imgName, err := NewApiImgsService().SaveImage(req, userId)
+	_, _, imgName, fullPath, err = NewApiImgsTempService().SaveImage(req, userId)
 	if err != nil {
-		return req.ArticleId, fullPath, imgName, fileName, err
+		return resourceId, fullPath, imgName, fileName, err
 	}
-	fullPath, _ = url.JoinPath(imgPath, imgName)
-	return req.ArticleId, fullPath, imgName, fileName, nil
+	return resourceId, fullPath, imgName, fileName, nil
 }
 
 // 保存草稿
@@ -182,14 +182,10 @@ func (ser *apiArticleService) SaveArticleDraft(userId uint64, req models.Article
 		}
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
 	go func() {
 		// 删除多余草稿
 		ser.GetDraftHistoryInfo(article.Id)
-		wg.Done()
 	}()
-	wg.Wait()
 	return article, nil
 }
 
@@ -313,4 +309,12 @@ func (ser *apiArticleService) GetDraftHistoryInfo(id uint64) (models.ArticleHist
 	} else {
 		return historyInfo, errors.New(constant.ARTICLE_DARFT_PARAM_ERR)
 	}
+}
+
+// 更新文章的评论总数
+func (ser *apiArticleService) UpdateArticleCommentCount(id uint64) error {
+	if &id == nil {
+		return errors.New(constant.ARTICLE_UPDATE_COMMENT_COUNT_ERR)
+	}
+	return ser.Dao.UpdateColumnCount(id, "comment_count", "+", nil)
 }

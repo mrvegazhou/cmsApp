@@ -12,7 +12,7 @@ import (
 	"cmsApp/configs"
 	"cmsApp/pkg/redisClient"
 	"cmsApp/pkg/utils/filesystem"
-	gstrings "cmsApp/pkg/utils/strings"
+	"cmsApp/pkg/utils/stringx"
 )
 
 var ctx = context.Background()
@@ -32,7 +32,7 @@ func WriteLog() {
 	for _, key := range keys {
 		path := strings.ReplaceAll(key, ":", "/")
 
-		file, err := filesystem.OpenFile(gstrings.JoinStr(configs.RootPath, "/", path, ".log"))
+		file, err := filesystem.OpenFile(stringx.JoinStr(configs.RootPath, "/", path, ".log"))
 		if err == nil {
 			wg.Add(1)
 			go writeFile(key, file, &wg)

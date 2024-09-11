@@ -25,8 +25,8 @@ type SiteConfigReq struct {
 }
 
 type SiteConfigRes struct {
-	SiteConfig SiteConfig `json:"siteConfig"`
-	UserInfo   AppUserRes `json:"userInfo"`
+	SiteConfig SiteConfig  `json:"siteConfig"`
+	UserInfo   AppUserInfo `json:"userInfo"`
 }
 
 func (site *SiteConfig) TableName() string {

@@ -4,14 +4,20 @@ import (
 	"cmsApp/configs"
 	"cmsApp/internal/constant"
 	"cmsApp/internal/controllers/api"
+	"cmsApp/internal/middleware"
 	"cmsApp/internal/models"
 	apiservice "cmsApp/internal/services/api"
 	"cmsApp/pkg/AES"
+	"cmsApp/pkg/DES"
+	"cmsApp/pkg/jwt"
 	"cmsApp/pkg/utils/arrayx"
 	"cmsApp/pkg/utils/imagex"
+	"cmsApp/pkg/utils/stringx"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -26,12 +32,40 @@ func NewImgsController() imgsController {
 func (con imgsController) Routes(rg *gin.RouterGroup) {
 	rg.GET("/static/:name", con.show)
 	rg.GET("/static/p/:name", con.personalShow)
+	rg.POST("/upload", middleware.JwtAuth(), con.upload)
 	rg.POST("/delete", con.delImage)
 	rg.POST("/personalImageList", con.personalImageList)
 }
 
 func (apicon imgsController) personalShow(c *gin.Context) {
 	name := c.Param("name")
+	token, err := c.Cookie("__t")
+	token = strings.Replace(token, " ", "+", -1)
+	if err != nil {
+		apicon.Error(c, errors.New(constant.IMAGE_CHECK_PERMISSION_ERR), nil)
+		return
+	}
+	token2, err := AES.DecryptJsStr(token, configs.App.Upload.ImgCookieSecret, configs.App.Upload.ImgCookieSecret)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	_, err = jwt.Check(token2, configs.App.Login.JwtSecret, false)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	//userId := payload.ID
+	//// 检查是否为自己上传的图片
+	//flag, err := apiservice.NewApiImgsService().CheckImageIsYours(cast.ToUint64(userId), name)
+	//if err != nil {
+	//	apicon.Error(c, err, nil)
+	//	return
+	//}
+	//if !flag {
+	//	apicon.Error(c, errors.New(constant.IMAGE_CHECK_PERMISSION_ERR), nil)
+	//	return
+	//}
 	url, err := apiservice.NewApiImgsService().GetImageDirs(name)
 	if err != nil {
 		apicon.Error(c, err, nil)
@@ -60,10 +94,12 @@ func (apicon imgsController) show(c *gin.Context) {
 		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
 		return
 	}
+	token = strings.Replace(token, " ", "+", -1)
 	// 解密t t是时间戳
-	desTime := AES.Decrypt(token, configs.App.Upload.Key)
-	timeTemplate := "2006-01-02 15:04:05"
-	lastStamp, err := time.ParseInLocation(timeTemplate, desTime, time.Local)
+	des, err := DES.DesCbcDecryptByBase64(token, stringx.String2bytes(configs.App.Upload.Key), nil)
+	parts := strings.SplitN(stringx.Bytes2string(des), " ", 2)
+	timeTemplate := "2006-01-02"
+	lastStamp, err := time.ParseInLocation(timeTemplate, parts[1], time.Local)
 	t1 := lastStamp.Unix()
 	if err != nil {
 		apicon.Error(c, errors.New(constant.DECODE_IMG_ERR), nil)
@@ -125,4 +161,50 @@ func (apicon imgsController) personalImageList(c *gin.Context) {
 		return
 	}
 	apicon.Success(c, map[string]interface{}{"imgList": imgList, "page": page, "totalPage": totalPage})
+}
+
+func (apicon imgsController) upload(c *gin.Context) {
+	var (
+		resourceId uint64
+		err        error
+		req        models.AppImgTempUploadReq
+	)
+	err = apicon.FormBind(c, &req)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	uid, _ := c.Get("uid")
+	userId := cast.ToUint64(uid)
+	imgName := ""
+	fileName := ""
+	if req.Type == "2" {
+		resourceId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadCoverImage(req, userId)
+	} else if req.Type == "1" {
+		// 检查文章图片的上传限制次数50次
+		_, err := apiservice.NewApiArticleService().CheckUploadLimitNum(userId)
+		if err != nil {
+			apicon.Error(c, err, nil)
+			return
+		}
+		resourceId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadImage(req, userId)
+	} else if req.Type == "3" || req.Type == "4" || req.Type == "5" {
+		_, _, imgName, fileName, err = apiservice.NewApiImgsService().UploadImage(req, userId)
+	}
+
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	apicon.Success(c, map[string]interface{}{"imageName": imgName, "fileName": fileName, "resourceId": resourceId})
+}
+
+func (apicon imgsController) delete(c *gin.Context) {
+	var (
+		err error
+		req models.AppImgTempDeleteReq
+	)
+	uid, _ := c.Get("uid")
+	userId := cast.ToUint64(uid)
+
 }

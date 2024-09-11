@@ -31,9 +31,16 @@ func (dao *AppArticleCommentDao) CreateArticleComment(articleComment models.AppA
 	return articleComment.Id, nil
 }
 
-func (dao *AppArticleCommentDao) GetArticleComment(conditions map[string]interface{}) (article models.AppArticleComment, err error) {
-	err = dao.DB.Where(conditions).First(&article).Error
+func (dao *AppArticleCommentDao) GetArticleComment(conditions map[string]interface{}) (comment models.AppArticleComment, err error) {
+	err = dao.DB.Where(conditions).First(&comment).Error
 	return
+}
+
+func (dao *AppArticleCommentDao) UpdateArticleComment(column models.AppArticleComment) (int64, error) {
+	var comment models.AppArticleComment
+	modelDB := dao.DB.Model(&comment)
+	result := modelDB.Where("id = ?", column.Id).Updates(column)
+	return result.RowsAffected, modelDB.Error
 }
 
 func (dao *AppArticleCommentDao) GetArticleCommentList(conditions map[string][]interface{}, pageParam int, pageSizeParam int) ([]models.AppArticleComment, int, int, error) {
@@ -59,4 +66,23 @@ func (dao *AppArticleCommentDao) GetArticleCommentTotal(conditions map[string][]
 	var count int64
 	err := Db.Count(&count).Error
 	return count, err
+}
+
+func (dao *AppArticleCommentDao) GetArticleCommentListNoTotal(conditions map[string][]interface{}, pageParam int, pageSizeParam int, orderBy string) ([]models.AppArticleComment, int, error) {
+	comments := []models.AppArticleComment{}
+	Db := dao.DB
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ArticleCommentFields{})
+
+	if pageParam == 0 {
+		pageParam = 1
+	}
+	offset := (pageParam - 1) * pageSizeParam
+	if orderBy == "" {
+		orderBy = "create_time desc"
+	}
+	Db = Db.Scopes(dao.Order(orderBy)).Offset(offset).Limit(pageSizeParam)
+	if err := Db.Find(&comments).Error; err != nil {
+		return comments, offset, err
+	}
+	return comments, offset, nil
 }

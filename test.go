@@ -1,108 +1,150 @@
-/*
-一个简单认证模块, 防止接口完全公开被无脑调用
-
-适用于内网, 低延时,可信度较高环境中的同一套服务的内部使用
-仅需要使用统一的 KEY, 做简单的类似防盗链的加密认证方式
-
-Decode 系列函数返回两个结果, 是否验证通过和错误码,
-当通过当时候, 错误码为 nil, 不通过原因可通过错误码获得
-其中 NoErr 系列只返回是否验证通过
-
-Encode 系列函数需要注意, 当使用返回两个结果的函数时候,
-其返回的密钥串中不包含时间戳信息
-*/
-
 package main
 
 import (
+	"cmsApp/pkg/DES"
+	"encoding/hex"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
-	"github.com/pkg/errors"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomono"
-	"image"
-	"image/color"
-	"image/draw"
-	"unicode/utf8"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+	"unsafe"
 )
 
-func AddWatermarkForImage(oriImage image.Image, uid string) (*image.RGBA, error) {
-	watermarkedImage := image.NewRGBA(oriImage.Bounds())
-	draw.Draw(watermarkedImage, oriImage.Bounds(), oriImage, image.Point{}, draw.Src)
-
-	// 生成水印的图片
-	watermark, err := MakeImageByText(uid, color.Transparent)
-	if err != nil {
-		return nil, err
-	}
-	rotatedWatermark := imaging.Rotate(watermark, 30, color.Transparent)
-
-	x, y := 0, 0
-	for y <= watermarkedImage.Bounds().Max.Y {
-		for x <= watermarkedImage.Bounds().Max.X {
-			offset := image.Pt(x, y)
-			draw.Draw(watermarkedImage, rotatedWatermark.Bounds().Add(offset), rotatedWatermark, image.Point{}, draw.Over)
-			// 稀疏一点, 稍微提升点速度
-			x += rotatedWatermark.Bounds().Dx() * 2
+func replaceImageSrc(str, newSrc string) string {
+	// 正则表达式匹配自定义的 Image 标签和 src 属性
+	imageRegex := regexp.MustCompile(`(Image src=")([^"]+)(")`)
+	return imageRegex.ReplaceAllString(str, fmt.Sprintf(`$1%s$3`, newSrc))
+}
+func appendParamToImageSrc(str string, paramName string, paramValue string) string {
+	// 正则表达式匹配 Image 标签的 src 属性
+	imageRegex := regexp.MustCompile(`(<Image [^>]*src=")([^"]+)(" [^>]*>)`)
+	// 替换函数，用于在 src 属性值后追加参数
+	replaceFunc := func(match string) string {
+		parts := imageRegex.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match // 如果没有匹配到src属性值，返回原始字符串
 		}
-		y += rotatedWatermark.Bounds().Dy()
-		x = 0
+		src := fmt.Sprintf("%s?%s=%s", parts[2], paramName, paramValue)
+		return parts[1] + src + parts[3]
 	}
-	return watermarkedImage, nil
+	// 使用正则表达式替换所有匹配的 Image 标签的 src 属性
+	return imageRegex.ReplaceAllStringFunc(str, replaceFunc)
 }
 
-// MakeImageByText 根据文本内容制作一个仅包含该文本内容的图片
-func MakeImageByText(text string, bgColor color.Color) (image.Image, error) {
-	fontSize := float64(15)
-	freetypeCtx := MakeFreetypeCtx(fontSize)
-
-	width, height := int(fontSize)*len(text), int(fontSize)*2
-	rgbaRect := image.NewRGBA(image.Rect(0, 0, width, height))
-
-	// 仅当非透明时才做一次额外的渲染
-	if bgColor != color.Transparent {
-		bgUniform := image.NewUniform(bgColor)
-		draw.Draw(rgbaRect, rgbaRect.Bounds(), bgUniform, image.Pt(0, 0), draw.Src)
+func string2bytes(s string) []byte {
+	if len(s) == 0 {
+		return []byte("")
 	}
-
-	freetypeCtx.SetClip(rgbaRect.Rect)
-	freetypeCtx.SetDst(rgbaRect)
-	pt := freetype.Pt(0, int(freetypeCtx.PointToFixed(fontSize)>>6))
-	_, err := freetypeCtx.DrawString(text, pt)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return rgbaRect, nil
+	return *(*[]byte)(unsafe.Pointer(
+		&struct {
+			string
+			Cap int
+		}{s, len(s)},
+	))
 }
 
-// MustParseFont 通过单测来保证该方法必不会 panic
-func MustParseFont() *truetype.Font {
-	ft, err := freetype.ParseFont(gomono.TTF)
-	if err != nil {
-		panic(err)
+func bytes2string(b []byte) string {
+	if len(b) == 0 {
+		return ""
 	}
-	return ft
+	return *(*string)(unsafe.Pointer(&b))
 }
 
-func MakeFreetypeCtx(fontSize float64) *freetype.Context {
-	fontColor := color.RGBA{R: 0, G: 0, B: 0, A: 50}
-	fontColorUniform := image.NewUniform(fontColor)
+type Encoder struct {
+	src   []byte
+	dst   []byte
+	Error error
+}
 
-	freetypeCtx := freetype.NewContext()
-	freetypeCtx.SetDPI(100)
-	freetypeCtx.SetFont(MustParseFont())
-	freetypeCtx.SetFontSize(fontSize)
-	freetypeCtx.SetSrc(fontColorUniform)
-	freetypeCtx.SetHinting(font.HintingNone)
-	return freetypeCtx
+func newEncoder() Encoder {
+	return Encoder{}
+}
+
+func (e Encoder) FromString(s string) Encoder {
+	e.src = string2bytes(s)
+	return e
+}
+func (e Encoder) ByHex() Encoder {
+	if len(e.src) == 0 || e.Error != nil {
+		return e
+	}
+	buf := make([]byte, hex.EncodedLen(len(e.src)))
+	hex.Encode(buf, e.src)
+	e.dst = buf
+	return e
+}
+func (e Encoder) ToString() string {
+	return bytes2string(e.dst)
+}
+
+func modifyImgSrc(content string, param string) string {
+	// 使用正则表达式匹配 img 标签
+	imgTagRegex := regexp.MustCompile(`<img\s+([^>]*)src\s*=\s*['"]([^'"]*)['"][^>]*>`)
+
+	// 使用替换函数来修改匹配到的内容
+	replacedContent := imgTagRegex.ReplaceAllStringFunc(content, func(match string) string {
+		// 提取 src 属性的值
+		submatches := imgTagRegex.FindStringSubmatch(match)
+		if len(submatches) > 2 {
+			attributes := submatches[1] // 所有的属性
+			srcValue := submatches[2]   // src 的值
+			// 在 src 值后面添加参数 t=xxx
+			newSrc := srcValue + "?" + param
+			// 构造新的 img 标签
+			fmt.Println(attributes, "--attributes--")
+			return fmt.Sprintf("<img %s src=\"%s\">", attributes, newSrc)
+		}
+		return match // 如果没有匹配到 src，则返回原字符串
+	})
+
+	return replacedContent
 }
 
 func main() {
-	myString := "这是一段很x长的文本，我们想要知道它是否包含超过1500个字符。"
+	// 假设的加密字符串，需要替换为实际的加密字符串
+	//encryptedStr := "cGeh YneCLLY32i9c71OWa36NzjAdZhk4xnUP/qjqhIIMOl8dNJ ElI6pjInzKLtk4vRLk4InglasLwwSXpy k61kck1bfra1awJHfnFCei 1kQyJBtw5Tgf7U KkiNwr9dMEufpsOBs16dhtPXFHwo7JetnRh62zXqjuoUc n83ssTG1upzWxNfvNesV/Mz7OeEhNIG byA62TF10dzOfPELOCvR8hgRmDgjK8KLBI4RKnHbOT6dPjfdl6Ay/ Rnz8dz5rZ9zNUW/wt0grjA4pYs1AMXFRViYGOIlqlgQE="
+	//replacedStr := strings.Replace(encryptedStr, " ", "+", -1)
+	//fmt.Println(AES.DecryptJsStr(replacedStr, "0123456789abcdef", "0123456789abcdef"))
+	//keyStr := "0123456789abcdef" // 确保密钥长度为16, 24或32
+	//ivStr := "0123456789abcdef"  // 确保 IV 长度为 16
+	//
+	//decryptedStr, err := aesDecryptStr(replacedStr, keyStr, ivStr)
+	//if err != nil {
+	//	fmt.Println("Error decrypting string:", err)
+	//	return
+	//}
+	//
+	//fmt.Println("Decrypted string:", decryptedStr)
+	//html := `<img src="http://localhost:3015/api/image/static/1832334041920049152.png">爱的火花`
+	//start := time.Now() // 开始时间
+	//ssss := time.Now().Format("2006-01-02 15:04:05")
+	//content, _ := DES.DesCbcEncryptBase64([]byte(ssss), []byte("upload89"), nil)
+	//res, _ := parser.AddImgSrcT(html, content)
+	//fmt.Println(res)
+	//fmt.Println(strings.ContainsImgTag(html))
+	//res, _ := DES.DesCbcDecryptByBase64(content, []byte("upload89"), nil)
+	//fmt.Println(content, stringx.Bytes2string(res))
+	//elapsed := time.Since(start) // 计算运行时间
+	//fmt.Printf("Function took222 %s\n", elapsed)
 
-	// 使用utf8.RuneCountInString来计算字符串中的字符数
-	characterCount := utf8.RuneCountInString(myString)
-	fmt.Println(characterCount)
+	//fmt.Println(HEXX.EncodeHex("f"))
+	//fmt.Println(HEXX.DecodeHex("30313233343536373839616263646566"))
+	//fmt.Println(HTMLX.AppendParamToImageSrc(html, "t", "xxxx"))
+	content := "http://localhost:3015/api/image/static/p/1830142143692279808.png"
+	filename := filepath.Base(content)
+	filenameWithoutExt := strings.TrimSuffix(filename, filepath.Ext(filename))
+	//lastFourChars := filenameWithoutExt[len(filenameWithoutExt)-4:]
+	encryptStr, _ := DES.DesCbcEncryptBase64([]byte(filenameWithoutExt+time.Now().Format("2006-01-02")), []byte("upload89"), nil)
+	//desTime, err := DES.DesCbcDecryptByBase64("EzBD8o2zZJI0ZKS/PZ7xpysdGVdJ+ohJ", string2bytes("upload89"), nil)
+	fmt.Println(filenameWithoutExt, encryptStr)
+
+	timeTemplate := "2006-01-02"
+	lastStamp, err := time.ParseInLocation(timeTemplate, "2024-09-07", time.Local)
+	fmt.Println(lastStamp, err)
+
+	str := "Hello World! This is a test string."
+	// 使用Split函数分割字符串，这将分割所有空格
+	parts := strings.SplitN(str, " ", 2)
+	fmt.Println("第一部分:", parts[1])
 }

@@ -1,4 +1,4 @@
-package des
+package DES
 
 import (
 	"github.com/stretchr/testify/assert"

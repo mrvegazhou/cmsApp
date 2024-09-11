@@ -46,7 +46,7 @@ func (apicon siteConfigController) siteConfigInfo(c *gin.Context) {
 		return
 	}
 
-	userInfo := models.AppUserRes{}
+	userInfo := models.AppUserInfo{}
 	if req.Uid != 0 {
 		userInfo, err = apiservice.NewApiUserService().GetUserInfoRes(map[string]interface{}{"id": req.Uid})
 	}

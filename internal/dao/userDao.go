@@ -3,7 +3,7 @@ package dao
 import (
 	"cmsApp/internal/models"
 	"cmsApp/pkg/postgresqlx"
-	"cmsApp/pkg/utils/strings"
+	"cmsApp/pkg/utils/stringx"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -36,9 +36,9 @@ func (dao *AppUserDao) SearchUserList(name string, pageParam int, pageSizeParam 
 		return users, 0, 0, nil
 	}
 	Db := dao.DB.Model(&models.AppUser{})
-	if strings.CheckEmail(name) {
+	if stringx.CheckEmail(name) {
 		Db = Db.Where("email=?", name)
-	} else if strings.CheckMobile(name) {
+	} else if stringx.CheckMobile(name) {
 		Db = Db.Where("phone=?", name)
 	} else {
 		name = "%" + name + "%"
@@ -73,9 +73,9 @@ func (dao *AppUserDao) GetUserList(conditions map[string][]interface{}) ([]model
 
 func (dao *AppUserDao) SearchUserListTotal(name string) (int64, error) {
 	Db := dao.DB.Model(&models.AppUser{})
-	if strings.CheckEmail(name) {
+	if stringx.CheckEmail(name) {
 		Db = Db.Where("email=?", name)
-	} else if strings.CheckMobile(name) {
+	} else if stringx.CheckMobile(name) {
 		Db = Db.Where("phone=?", name)
 	} else {
 		name = "%" + name + "%"

@@ -3,7 +3,8 @@ package api
 import (
 	"cmsApp/internal/dao"
 	"cmsApp/internal/models"
-	"fmt"
+	"cmsApp/pkg/utils/arrayx"
+	"github.com/jinzhu/copier"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -26,22 +27,24 @@ func NewApiUserService() *apiUserService {
 	return instanceApiUserService
 }
 
-func (ser *apiUserService) GetUserInfoRes(condition map[string]interface{}) (user models.AppUserRes, err error) {
+func (ser *apiUserService) GetUserInfoRes(condition map[string]interface{}) (user models.AppUserInfo, err error) {
 	userInfo, err := ser.Dao.GetAppUser(condition)
 	if err == gorm.ErrRecordNotFound {
-		return models.AppUserRes{}, nil
+		return models.AppUserInfo{}, nil
 	}
-	userInfoRes := models.AppUserRes{
+	userInfoRes := models.AppUserInfo{
 		Id:         userInfo.Id,
 		Nickname:   userInfo.Nickname,
 		Email:      userInfo.Email,
+		Phone:      userInfo.Phone,
+		About:      userInfo.About,
+		AvatarUrl:  userInfo.AvatarUrl,
 		CreateTime: userInfo.CreateTime,
 	}
 	return userInfoRes, err
 }
 
 func (ser *apiUserService) SearchUserList(name string, pageParam int, pageSizeParam int) (userList []models.AppUser, page int, totalPage int, err error) {
-	fmt.Println(name, pageParam, pageSizeParam, "==s===")
 	userList, page, totalPage, err = ser.Dao.SearchUserList(name, pageParam, pageSizeParam)
 	if err == gorm.ErrRecordNotFound {
 		return userList, page, totalPage, nil
@@ -62,4 +65,21 @@ func (ser *apiUserService) GetUserList(userIds []uint64) (userList []models.AppU
 	} else {
 		return userList, err
 	}
+}
+
+// 通过in userIds查询出用户列表后，进行去重ids，返回user map
+func (ser *apiUserService) GetUserMapListByIds(userIds []uint64) (userMap map[uint64]models.AppUserInfo, err error) {
+	userIds = arrayx.RemoveRepeatedElement(userIds)
+	userList, err := NewApiUserService().GetUserList(userIds)
+	if err != nil {
+		return userMap, err
+	}
+	// 获取user list 的info
+	userMap = make(map[uint64]models.AppUserInfo, len(userList))
+	for _, userInfo := range userList {
+		userModel := models.AppUserInfo{}
+		copier.CopyWithOption(&userModel, userInfo, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+		userMap[userInfo.Id] = userModel
+	}
+	return userMap, nil
 }

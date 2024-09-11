@@ -11,7 +11,7 @@ import (
 	"cmsApp/pkg/utils/arrayx"
 	"cmsApp/pkg/utils/number"
 	"cmsApp/pkg/utils/snowflake"
-	stringsx "cmsApp/pkg/utils/strings"
+	"cmsApp/pkg/utils/stringx"
 	"context"
 	"fmt"
 	jwtLib "github.com/golang-jwt/jwt/v5"
@@ -271,10 +271,10 @@ func (ser *apiCollabService) CheckCollabToken(userId uint64, token string) model
 		// 查询用户信息
 		userInfo, err := NewApiUserService().GetUserInfoRes(map[string]interface{}{"id": userId})
 		// 查询无报错，并且查询值不为空
-		if err == nil && !reflect.DeepEqual(userInfo, models.AppUserRes{}) {
+		if err == nil && !reflect.DeepEqual(userInfo, models.AppUserInfo{}) {
 			tokenInfo.IsCollab = true
 			tokenInfo.RoomName = AES.Decrypt(payload.Name, secret)
-			tokenInfo.CursorColor = stringsx.Str2rgb(userInfo.Nickname)
+			tokenInfo.CursorColor = stringx.Str2rgb(userInfo.Nickname)
 			tokenInfo.UserName = userInfo.Nickname
 			tokenInfo.Token = token
 			tokenInfo.User = AES.Encrypt(cast.ToString(userInfo.Id), secret)

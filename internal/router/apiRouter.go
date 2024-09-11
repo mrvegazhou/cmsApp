@@ -5,6 +5,7 @@ import (
 	"cmsApp/internal/controllers/api/appType"
 	"cmsApp/internal/controllers/api/article"
 	"cmsApp/internal/controllers/api/imgs"
+	"cmsApp/internal/controllers/api/report"
 	"cmsApp/internal/controllers/api/siteConfig"
 	"cmsApp/internal/controllers/api/siteInfo"
 	"cmsApp/internal/controllers/api/user"
@@ -52,6 +53,13 @@ func (ar ApiRouter) AddRouters() {
 			ar.addRouter(article.NewArticleController(), apiArticleRouter)
 			ar.addRouter(article.NewArticleToolBarController(), apiArticleRouter)
 			ar.addRouter(article.NewCollabController(), apiArticleRouter)
+			ar.addRouter(article.NewCommentController(), apiArticleRouter) //评论
+		}
+	}
+	{
+		apiReportRouter := ar.root.Group("/report")
+		{
+			ar.addRouter(report.NewReportController(), apiReportRouter)
 		}
 	}
 	{

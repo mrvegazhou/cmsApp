@@ -13,7 +13,7 @@ import (
 	captchaService "cmsApp/pkg/slideCaptcha"
 	"cmsApp/pkg/utils/random"
 	"cmsApp/pkg/utils/regexpx"
-	"cmsApp/pkg/utils/strings"
+	"cmsApp/pkg/utils/stringx"
 	"context"
 	"errors"
 	"fmt"
@@ -104,7 +104,7 @@ func (ser *apiLoginService) RegisterByEmail(req models.AppUserRegisterReq, ip st
 
 	user.Email = req.Email
 	salt := random.RandString(6)
-	passwordSalt := strings.Encryption(password, salt)
+	passwordSalt := stringx.Encryption(password, salt)
 	user.Password = passwordSalt
 	user.Salt = salt
 	user.ExpirTime = time.Now().AddDate(1, 0, 0)
@@ -180,7 +180,7 @@ func (ser *apiLoginService) LoginByEmail(req models.AppUserLoginReq, ip string, 
 	if t > configTimes {
 		return userInfo, token, refreshToken, times, errors.New(constant.LOGIN_TIMES_ERR)
 	}
-	fmt.Println(email, originalPassword, ser.Dao, "===emailxxxxxxxxxxxxx===")
+
 	userInfo, err = ser.Dao.GetAppUser(map[string]interface{}{"email": email})
 	if err != nil {
 		times = ser.CheckLoginTimes(email, t, ip)
@@ -193,7 +193,7 @@ func (ser *apiLoginService) LoginByEmail(req models.AppUserLoginReq, ip string, 
 	}
 
 	//校验密码
-	passwordSalt := strings.Encryption(password, userInfo.Salt)
+	passwordSalt := stringx.Encryption(password, userInfo.Salt)
 	if passwordSalt != userInfo.Password {
 		times = ser.CheckLoginTimes(email, t, ip)
 		return userInfo, token, refreshToken, times, errors.New(constant.LOGIN_PASSWORD_ERR)
@@ -219,7 +219,7 @@ func (ser *apiLoginService) LoginByEmail(req models.AppUserLoginReq, ip string, 
 	}
 
 	//生成refresh_token
-	refreshToken = strings.Encryption(passwordSalt, strconv.FormatInt(time.Now().UnixNano(), 10))
+	refreshToken = stringx.Encryption(passwordSalt, strconv.FormatInt(time.Now().UnixNano(), 10))
 
 	err = ser.Dao.UpdateColumns(map[string]interface{}{
 		"id": userInfo.Id,
@@ -280,7 +280,7 @@ func (ser *apiLoginService) RefreshToken(uid uint64, req models.AppUserRefreshTo
 	}
 
 	// 重新生成refreshToken
-	refreshToken = strings.Encryption(user.Password, strconv.FormatInt(time.Now().UnixNano(), 10))
+	refreshToken = stringx.Encryption(user.Password, strconv.FormatInt(time.Now().UnixNano(), 10))
 	// 更新update_time, refresh_token
 	err = ser.Dao.UpdateColumns(map[string]interface{}{
 		"id": uid,
@@ -422,7 +422,7 @@ func (ser *apiLoginService) ChangeNewPwdByEmailCode(req models.AppUserChangePwdB
 	}
 
 	salt := random.RandString(6)
-	newPasswordSalt := strings.Encryption(newPassword, salt)
+	newPasswordSalt := stringx.Encryption(newPassword, salt)
 	err = ser.Dao.UpdateColumns(map[string]interface{}{
 		"email": req.Email,
 	}, map[string]interface{}{
@@ -441,12 +441,12 @@ func (ser *apiLoginService) GetUseInfo(condition map[string]interface{}) (user m
 	return ser.Dao.GetAppUser(condition)
 }
 
-func (ser *apiLoginService) GetUserInfoRes(condition map[string]interface{}) (user models.AppUserRes, err error) {
+func (ser *apiLoginService) GetUserInfoRes(condition map[string]interface{}) (user models.AppUserInfo, err error) {
 	userInfo, err := ser.GetUseInfo(condition)
 	if err == gorm.ErrRecordNotFound {
-		return models.AppUserRes{}, nil
+		return models.AppUserInfo{}, nil
 	}
-	var userInfoRes models.AppUserRes = models.AppUserRes{
+	var userInfoRes models.AppUserInfo = models.AppUserInfo{
 		Id:         userInfo.Id,
 		Nickname:   userInfo.Nickname,
 		Email:      userInfo.Email,

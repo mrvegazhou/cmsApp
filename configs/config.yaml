@@ -16,7 +16,7 @@ session:
 upload:
   base_path: "/Users/vega/workspace/codes/golang_space/gopath/src/work/cmsApp/uploadfile"
   image_max_size: 10
-  key: "uploadKey123"
+  key: "upload89"
   limit_num: 20
   image_allow_exts:
     - "jpg"
@@ -25,6 +25,7 @@ upload:
     - "webp"
     - "jpeg"
     - "bmp"
+  img_cookie_secret: "0123456789abcdef"
 base:
   host: 0.0.0.0
   port: 3015

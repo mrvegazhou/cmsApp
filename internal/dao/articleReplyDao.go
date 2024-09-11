@@ -3,6 +3,7 @@ package dao
 import (
 	"cmsApp/internal/models"
 	"cmsApp/pkg/postgresqlx"
+	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -31,8 +32,21 @@ func (dao *AppArticleReplyDao) CreateArticleReply(articleReply models.AppArticle
 	return articleReply.Id, nil
 }
 
-func (dao *AppArticleReplyDao) GetArticleReply(conditions map[string]interface{}) (article models.AppArticleReply, err error) {
-	err = dao.DB.Where(conditions).First(&article).Error
+func (dao *AppArticleReplyDao) GetArticleReply(conditions map[string]interface{}) (reply models.AppArticleReply, err error) {
+	err = dao.DB.Where(conditions).First(&reply).Error
+	return
+}
+
+func (dao *AppArticleReplyDao) GetArticleReplies(conditions map[string][]interface{}, orderBy string) (replies []models.AppArticleReply, err error) {
+	Db := dao.DB
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ArticleReplyFields{})
+	if orderBy == "" {
+		orderBy = "create_time desc"
+	}
+	Db = Db.Scopes(dao.Order(orderBy))
+	if err := Db.Find(&replies).Error; err != nil {
+		return replies, err
+	}
 	return
 }
 
@@ -59,4 +73,25 @@ func (dao *AppArticleReplyDao) GetArticleReplyTotal(conditions map[string][]inte
 	var count int64
 	err := Db.Count(&count).Error
 	return count, err
+}
+
+func (dao *AppArticleReplyDao) GetArticleReplyListNoTotal(conditions map[string][]interface{}, pageParam int, pageSizeParam int, orderBy string) ([]models.AppArticleReply, error) {
+	replies := []models.AppArticleReply{}
+	Db := dao.DB
+	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ArticleReplyFields{})
+	if pageParam == 0 {
+		pageParam = 1
+	}
+	offset := (pageParam - 1) * pageSizeParam
+
+	if orderBy == "" {
+		orderBy = "create_time"
+	}
+	orderBy = fmt.Sprintf("%s desc", orderBy)
+
+	Db = Db.Scopes(dao.Order(orderBy)).Offset(offset).Limit(pageSizeParam)
+	if err := Db.Find(&replies).Error; err != nil {
+		return replies, err
+	}
+	return replies, nil
 }

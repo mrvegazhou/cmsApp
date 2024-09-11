@@ -73,17 +73,14 @@ func CheckImageSize(f multipart.File) bool {
 func CheckImage(src string) error {
 	isExists, _ := filesystem.FileExists(src)
 	if isExists == false {
-		//return fmt.Errorf("Image does not exist: %s", src)
 		return errors.New(constant.FILE_NOT_EXIST_ERR)
 	}
 	perm := filesystem.CheckPermission(src)
 	if perm == true {
-		//return fmt.Errorf("file.CheckPermission Permission denied src: %s", src)
 		return errors.New(constant.FILE_PERMISSION_ERR)
 	}
 	flag := IsImage(src)
 	if flag == false {
-		//return fmt.Errorf("Unable to decode to image: %s", src)
 		return errors.New(constant.DECODE_IMG_ERR)
 	}
 	return nil

@@ -4,7 +4,7 @@ import (
 	"cmsApp/configs"
 	"cmsApp/internal/controllers"
 	"cmsApp/pkg/cors"
-	"cmsApp/pkg/utils/strings"
+	"cmsApp/pkg/utils/stringx"
 	"cmsApp/pkg/validator"
 	"cmsApp/web"
 	swaggerFiles "github.com/swaggo/files"
@@ -55,7 +55,7 @@ func Init() (*Router, error) {
 	router.SetStaticFile("/statics", web.StaticsFs)
 
 	//设置上传附件
-	uploadPath := strings.JoinStr(configs.RootPath, string(filepath.Separator), "uploadfile")
+	uploadPath := stringx.JoinStr(configs.RootPath, string(filepath.Separator), "uploadfile")
 	err = router.SetUploadDir(uploadPath)
 	if err != nil {
 		return nil, err

@@ -6,6 +6,7 @@
 package newer
 
 import (
+	"fmt"
 	"io"
 	"time"
 
@@ -35,7 +36,7 @@ func NewZapLogger(path string) *zap.Logger {
 	// 获取 info、error日志文件的io.Writer 抽象 getWriter() 在下方实现
 	infoWriter := getWriter(configs.RootPath + "/logs/%Y%m%d/" + path + "/demo_info.log")
 	errorWriter := getWriter(configs.RootPath + "/logs/%Y%m%d/" + path + "/demo_error.log")
-
+	fmt.Println(errorWriter, "---errorWriter---")
 	// 最后创建具体的Logger
 	core := zapcore.NewTee(
 		zapcore.NewCore(encoder, zapcore.AddSync(infoWriter), zapcore.InfoLevel),

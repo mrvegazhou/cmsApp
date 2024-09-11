@@ -11,6 +11,18 @@ type AppUser struct {
 	UserFields
 }
 
+func (user *AppUser) TableName() string {
+	return "cms_app.app_user"
+}
+
+func (user *AppUser) FillData(db *gorm.DB) {
+
+}
+
+func (user *AppUser) GetConnName() string {
+	return "default"
+}
+
 type UserFields struct {
 	Id           uint64    `gorm:"column:id;primary_key" json:"id" form:"id" name:"id"`
 	Nickname     string    `gorm:"column:nickname;not null" json:"nickname" form:"nickanme" name:"nickname"`
@@ -28,20 +40,13 @@ type UserFields struct {
 }
 
 type AppUserInfo struct {
-	Id        uint64 `json:"id" form:"id"`
-	Nickname  string `json:"nickname" form:"nickanme"`
-	Phone     string `json:"phone" form:"phone" label:"手机号"`
-	About     string `json:"about" form:"about"`
-	AvatarUrl string `json:"avatarUrl" form:"avatarUrl" label:"头像"`
-	Email     string `json:"email" form:"email" label:"邮箱"`
-}
-
-type AppUserRes struct {
-	Id         uint64    `json:"id,omitempty" form:"id"`
-	Nickname   string    `json:"nickname,omitempty" form:"nickanme"`
-	Email      string    `json:"email,omitempty" form:"email" label:"邮箱"`
-	Password   string    `json:"password,omitempty" form:"password"`
-	CreateTime time.Time `json:"createTime,omitempty" form:"createTime"`
+	Id         uint64    `json:"id" form:"id"`
+	Nickname   string    `json:"nickname" form:"nickanme"`
+	Phone      string    `json:"phone" form:"phone" label:"手机号"`
+	About      string    `json:"about" form:"about"`
+	AvatarUrl  string    `json:"avatarUrl" form:"avatarUrl" label:"头像"`
+	Email      string    `json:"email" form:"email" label:"邮箱"`
+	CreateTime time.Time `json:"createTime,omitempty" form:"createTime" label:"注册时间"`
 }
 
 // 注册请求
@@ -113,16 +118,4 @@ type AppUserPwdPubKeyReq struct {
 type AppUserSearchNameRes struct {
 	Name string `json:"name"`
 	Page int    `json:"page"`
-}
-
-func (user *AppUser) TableName() string {
-	return "cms_app.app_user"
-}
-
-func (user *AppUser) FillData(db *gorm.DB) {
-
-}
-
-func (user *AppUser) GetConnName() string {
-	return "default"
 }

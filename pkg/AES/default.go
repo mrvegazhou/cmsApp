@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	b64 "encoding/base64"
+	"fmt"
 	"io"
 )
 
@@ -82,4 +83,53 @@ func __DeriveKeyAndIv(passphrase string, salt string) (string, string) {
 	iv := salted[32:48]
 
 	return key, iv
+}
+
+func DecryptJsStr(encryptedStr, keyStr, ivStr string) (string, error) {
+	// 将加密字符串从 base64 编码解码
+	encryptedData, err := b64.StdEncoding.DecodeString(encryptedStr)
+	if err != nil {
+		return "", err
+	}
+
+	// 确保密钥长度正确
+	key := []byte(keyStr)
+	if len(key) != 16 && len(key) != 24 && len(key) != 32 {
+		return "", fmt.Errorf("invalid key size %d", len(key))
+	}
+
+	// 初始化向量
+	iv := []byte(ivStr)
+	if len(iv) != aes.BlockSize {
+		return "", fmt.Errorf("invalid IV size %d", len(iv))
+	}
+
+	// 创建 cipher.Block
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	// 创建 cipher.BlockMode
+	mode := cipher.NewCBCDecrypter(block, iv)
+
+	// 解密
+	if len(encryptedData)%aes.BlockSize != 0 {
+		return "", fmt.Errorf("encrypted data is not a multiple of the block size")
+	}
+	mode.CryptBlocks(encryptedData, encryptedData)
+
+	// 去除 PKCS7 填充
+	padding := encryptedData[len(encryptedData)-1]
+	if int(padding) > aes.BlockSize || padding == 0 {
+		return "", fmt.Errorf("invalid padding")
+	}
+	for _, v := range encryptedData[len(encryptedData)-int(padding):] {
+		if v != padding {
+			return "", fmt.Errorf("invalid padding")
+		}
+	}
+	encryptedData = encryptedData[:len(encryptedData)-int(padding)]
+
+	return string(encryptedData), nil
 }

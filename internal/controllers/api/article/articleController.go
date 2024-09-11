@@ -9,7 +9,6 @@ import (
 	"cmsApp/pkg/utils/number"
 	"errors"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
 
@@ -23,7 +22,6 @@ func NewArticleController() articleController {
 
 func (con articleController) Routes(rg *gin.RouterGroup) {
 	rg.POST("/info", con.info)
-	rg.POST("/uploadImage", middleware.JwtAuth(), con.uploadImage)
 	rg.POST("/save/article", middleware.JwtAuth(), con.saveArticle)
 	rg.POST("/save/draft", middleware.JwtAuth(), con.saveArticleDraft)
 	rg.POST("/publish/article", middleware.JwtAuth(), con.publishArticle)
@@ -43,7 +41,6 @@ func (apicon articleController) info(c *gin.Context) {
 	}
 	// 文章id是加密过的
 	articleId, err := number.HashIdToNum(req.ArticleId)
-	log.Info(articleId, "===articleId===")
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return
@@ -112,40 +109,6 @@ func (apicon articleController) saveArticle(c *gin.Context) {
 		return
 	}
 	apicon.Success(c, map[string]interface{}{"articleId": hashId})
-}
-
-func (apicon articleController) uploadImage(c *gin.Context) {
-	var (
-		articleId uint64
-		err       error
-		req       models.AppArticleUploadImage
-	)
-	err = apicon.FormBind(c, &req)
-	if err != nil {
-		apicon.Error(c, err, nil)
-		return
-	}
-	//userId, _ := c.Get("uid")
-	userId := uint64(3)
-	imgName := ""
-	fileName := ""
-	if req.Type == 2 {
-		articleId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadCoverImage(req, userId)
-	} else if req.Type == 1 {
-		// 检查文章图片的上传限制次数50次
-		_, err := apiservice.NewApiArticleService().CheckUploadLimitNum(userId)
-		if err != nil {
-			apicon.Error(c, err, nil)
-			return
-		}
-		articleId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadImage(req, userId)
-	}
-
-	if err != nil {
-		apicon.Error(c, err, nil)
-		return
-	}
-	apicon.Success(c, map[string]interface{}{"imageName": imgName, "fileName": fileName, "articleId": articleId})
 }
 
 // 文章草稿保存记录列表
