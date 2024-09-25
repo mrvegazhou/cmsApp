@@ -36,7 +36,6 @@ func (ser *apiUserService) GetUserInfoRes(condition map[string]interface{}) (use
 		Id:         userInfo.Id,
 		Nickname:   userInfo.Nickname,
 		Email:      userInfo.Email,
-		Phone:      userInfo.Phone,
 		About:      userInfo.About,
 		AvatarUrl:  userInfo.AvatarUrl,
 		CreateTime: userInfo.CreateTime,
@@ -44,15 +43,17 @@ func (ser *apiUserService) GetUserInfoRes(condition map[string]interface{}) (use
 	return userInfoRes, err
 }
 
-func (ser *apiUserService) SearchUserList(name string, pageParam int, pageSizeParam int) (userList []models.AppUser, page int, totalPage int, err error) {
-	userList, page, totalPage, err = ser.Dao.SearchUserList(name, pageParam, pageSizeParam)
+func (ser *apiUserService) SearchUserList(name string, pageParam int, pageSizeParam int, all bool) (userList []models.AppUserInfo, page int, totalPage int, hasNextPage bool, err error) {
+	userList, page, totalPage, err = ser.Dao.SearchUserList(name, pageParam, pageSizeParam, all)
 	if err == gorm.ErrRecordNotFound {
-		return userList, page, totalPage, nil
+		return userList, page, totalPage, false, nil
 	}
-	for i := 0; i < len(userList); i++ {
-		userList[i].Phone = ""
+	if page < totalPage {
+		hasNextPage = true
+	} else {
+		hasNextPage = false
 	}
-	return userList, page, totalPage, err
+	return userList, page, totalPage, hasNextPage, err
 }
 
 func (ser *apiUserService) GetUserList(userIds []uint64) (userList []models.AppUser, err error) {

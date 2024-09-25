@@ -33,7 +33,8 @@ func (con imgsController) Routes(rg *gin.RouterGroup) {
 	rg.GET("/static/:name", con.show)
 	rg.GET("/static/p/:name", con.personalShow)
 	rg.POST("/upload", middleware.JwtAuth(), con.upload)
-	rg.POST("/delete", con.delImage)
+	rg.POST("/deleteByName", con.deleteByName)
+	rg.POST("/deleteById", middleware.JwtAuth(), con.deleteById)
 	rg.POST("/personalImageList", con.personalImageList)
 }
 
@@ -124,7 +125,7 @@ func (apicon imgsController) show(c *gin.Context) {
 	c.File(url)
 }
 
-func (apicon imgsController) delImage(c *gin.Context) {
+func (apicon imgsController) deleteByName(c *gin.Context) {
 	var (
 		err error
 		req models.ImgReq
@@ -165,6 +166,7 @@ func (apicon imgsController) personalImageList(c *gin.Context) {
 
 func (apicon imgsController) upload(c *gin.Context) {
 	var (
+		imgId      uint64
 		resourceId uint64
 		err        error
 		req        models.AppImgTempUploadReq
@@ -178,8 +180,9 @@ func (apicon imgsController) upload(c *gin.Context) {
 	userId := cast.ToUint64(uid)
 	imgName := ""
 	fileName := ""
+
 	if req.Type == "2" {
-		resourceId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadCoverImage(req, userId)
+		resourceId, imgId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadCoverImage(req, userId)
 	} else if req.Type == "1" {
 		// 检查文章图片的上传限制次数50次
 		_, err := apiservice.NewApiArticleService().CheckUploadLimitNum(userId)
@@ -187,24 +190,34 @@ func (apicon imgsController) upload(c *gin.Context) {
 			apicon.Error(c, err, nil)
 			return
 		}
-		resourceId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadImage(req, userId)
+		resourceId, imgId, _, imgName, fileName, err = apiservice.NewApiArticleService().UploadImage(req, userId)
 	} else if req.Type == "3" || req.Type == "4" || req.Type == "5" {
-		_, _, imgName, fileName, err = apiservice.NewApiImgsService().UploadImage(req, userId)
+		imgId, _, _, imgName, fileName, err = apiservice.NewApiImgsService().UploadImage(req, userId)
 	}
 
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return
 	}
-	apicon.Success(c, map[string]interface{}{"imageName": imgName, "fileName": fileName, "resourceId": resourceId})
+	apicon.Success(c, map[string]interface{}{"imgId": imgId, "imageName": imgName, "fileName": fileName, "resourceId": resourceId})
 }
 
-func (apicon imgsController) delete(c *gin.Context) {
+func (apicon imgsController) deleteById(c *gin.Context) {
 	var (
 		err error
 		req models.AppImgTempDeleteReq
 	)
+	err = apicon.FormBind(c, &req)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
 	uid, _ := c.Get("uid")
 	userId := cast.ToUint64(uid)
-
+	err = apiservice.NewApiImgsTempService().DeleteImageById(userId, req.Id, req.ImgName)
+	if err != nil {
+		apicon.Error(c, err, nil)
+		return
+	}
+	apicon.Success(c, true)
 }

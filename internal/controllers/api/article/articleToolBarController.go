@@ -5,6 +5,7 @@ import (
 	"cmsApp/internal/models"
 	apiservice "cmsApp/internal/services/api"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
 )
 
 type articleToolBarController struct {
@@ -32,9 +33,8 @@ func (apicon articleToolBarController) doArticleLike(c *gin.Context) {
 		apicon.Error(c, err, nil)
 		return
 	}
-	//userId, _ := c.Get("uid")
-	userId := 3
-	uid := uint64(userId)
+	userId, _ := c.Get("uid")
+	uid := cast.ToUint64(userId)
 	err = apiservice.NewApiArticleToolBarService().DoArticleLike(req.ArticleId, uid)
 	if err != nil {
 		apicon.Error(c, err, nil)
@@ -53,9 +53,8 @@ func (apicon articleToolBarController) doArticleUnlike(c *gin.Context) {
 		apicon.Error(c, err, nil)
 		return
 	}
-	//userId, _ := c.Get("uid")
-	userId := 3
-	uid := uint64(userId)
+	userId, _ := c.Get("uid")
+	uid := cast.ToUint64(userId)
 	err = apiservice.NewApiArticleToolBarService().DoArticleUnlike(req.ArticleId, uid)
 	if err != nil {
 		apicon.Error(c, err, nil)
@@ -75,8 +74,8 @@ func (apicon articleToolBarController) getArticleToolBar(c *gin.Context) {
 		apicon.Error(c, err, nil)
 		return
 	}
-	userId := 3
-	uid := uint64(userId)
+	userId, _ := c.Get("uid")
+	uid := cast.ToUint64(userId)
 
 	// 是否点赞
 	resp = apiservice.NewApiArticleToolBarService().GetArticleToolBarData(req.ArticleId, uid)

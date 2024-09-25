@@ -4,6 +4,7 @@ import (
 	"cmsApp/internal/models"
 	"cmsApp/pkg/postgresqlx"
 	"cmsApp/pkg/utils/stringx"
+	"github.com/spf13/cast"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -30,22 +31,26 @@ func (dao *AppUserDao) GetAppUser(conditions map[string]interface{}) (user model
 	return
 }
 
-func (dao *AppUserDao) SearchUserList(name string, pageParam int, pageSizeParam int) ([]models.AppUser, int, int, error) {
-	users := []models.AppUser{}
+func (dao *AppUserDao) SearchUserList(name string, pageParam int, pageSizeParam int, all bool) ([]models.AppUserInfo, int, int, error) {
+	users := []models.AppUserInfo{}
 	if name == "" {
 		return users, 0, 0, nil
 	}
 	Db := dao.DB.Model(&models.AppUser{})
-	if stringx.CheckEmail(name) {
-		Db = Db.Where("email=?", name)
-	} else if stringx.CheckMobile(name) {
-		Db = Db.Where("phone=?", name)
+	if all {
+		if stringx.CheckEmail(name) {
+			Db = Db.Where("email=?", name)
+		} else if stringx.CheckMobile(name) {
+			Db = Db.Where("phone=?", name)
+		} else {
+			name = "%" + name + "%"
+			Db = Db.Where("nickname like ?", name)
+		}
 	} else {
-		name = "%" + name + "%"
-		Db = Db.Where("nickname like ?", name)
+		Db = Db.Where("nickname like ?", "%"+name+"%")
 	}
 
-	total, err := dao.SearchUserListTotal(name)
+	total, err := dao.SearchUserListTotal(name, all)
 	if err != nil {
 		return users, 1, 0, err
 	}
@@ -55,7 +60,7 @@ func (dao *AppUserDao) SearchUserList(name string, pageParam int, pageSizeParam 
 	if err := Db.Find(&users).Error; err != nil {
 		return users, page, totalPage, err
 	}
-	return users, page, totalPage, nil
+	return users, cast.ToInt(page), cast.ToInt(totalPage), nil
 }
 
 func (dao *AppUserDao) GetUserList(conditions map[string][]interface{}) ([]models.AppUser, error) {
@@ -71,16 +76,21 @@ func (dao *AppUserDao) GetUserList(conditions map[string][]interface{}) ([]model
 	return appUser, nil
 }
 
-func (dao *AppUserDao) SearchUserListTotal(name string) (int64, error) {
+func (dao *AppUserDao) SearchUserListTotal(name string, all bool) (int64, error) {
 	Db := dao.DB.Model(&models.AppUser{})
-	if stringx.CheckEmail(name) {
-		Db = Db.Where("email=?", name)
-	} else if stringx.CheckMobile(name) {
-		Db = Db.Where("phone=?", name)
+	if all {
+		if stringx.CheckEmail(name) {
+			Db = Db.Where("email=?", name)
+		} else if stringx.CheckMobile(name) {
+			Db = Db.Where("phone=?", name)
+		} else {
+			name = "%" + name + "%"
+			Db = Db.Where("nickname like ?", name)
+		}
 	} else {
-		name = "%" + name + "%"
-		Db = Db.Where("nickname like ?", name)
+		Db = Db.Where("nickname like ?", "%"+name)
 	}
+
 	var count int64
 	err := Db.Count(&count).Error
 	return count, err

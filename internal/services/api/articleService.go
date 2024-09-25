@@ -68,7 +68,7 @@ func (ser *apiArticleService) CheckUploadLimitNum(userId uint64) (bool, error) {
 	}
 }
 
-func (ser *apiArticleService) UploadImage(req models.AppImgTempUploadReq, userId uint64) (articleId uint64, fullPath string, imgName string, fileName string, err error) {
+func (ser *apiArticleService) UploadImage(req models.AppImgTempUploadReq, userId uint64) (articleId, imgId uint64, fullPath string, imgName string, fileName string, err error) {
 	fullPath = ""
 	fileName = req.File.Filename
 	resourceId := cast.ToUint64(req.ResourceId)
@@ -81,19 +81,19 @@ func (ser *apiArticleService) UploadImage(req models.AppImgTempUploadReq, userId
 		article.UpdateTime = time.Now()
 		articleId, err = ser.Dao.CreateAppArticle(article)
 		if err != nil {
-			return articleId, fullPath, imgName, fileName, errors.New(constant.ARTICLE_SAVE_ERR)
+			return articleId, imgId, fullPath, imgName, fileName, errors.New(constant.ARTICLE_SAVE_ERR)
 		}
 		req.ResourceId = cast.ToString(articleId)
 	}
 	// 存储到临时图片表
-	_, _, imgName, fullPath, err = NewApiImgsTempService().SaveImage(req, userId)
+	imgId, _, imgName, fullPath, err = NewApiImgsTempService().SaveImage(req, userId)
 	if err != nil {
-		return resourceId, fullPath, imgName, fileName, err
+		return resourceId, imgId, fullPath, imgName, fileName, err
 	}
-	return resourceId, fullPath, imgName, fileName, nil
+	return resourceId, imgId, fullPath, imgName, fileName, nil
 }
 
-func (ser *apiArticleService) UploadCoverImage(req models.AppImgTempUploadReq, userId uint64) (articleId uint64, fullPath string, imgName string, fileName string, err error) {
+func (ser *apiArticleService) UploadCoverImage(req models.AppImgTempUploadReq, userId uint64) (articleId, imgId uint64, fullPath string, imgName string, fileName string, err error) {
 	resourceId := cast.ToUint64(req.ResourceId)
 	if resourceId <= 0 {
 		// 生成空文章信息
@@ -104,15 +104,15 @@ func (ser *apiArticleService) UploadCoverImage(req models.AppImgTempUploadReq, u
 		article.UpdateTime = time.Now()
 		articleId, err = ser.Dao.CreateAppArticle(article)
 		if err != nil {
-			return articleId, fullPath, imgName, fileName, errors.New(constant.ARTICLE_SAVE_ERR)
+			return articleId, imgId, fullPath, imgName, fileName, errors.New(constant.ARTICLE_SAVE_ERR)
 		}
 		req.ResourceId = cast.ToString(articleId)
 	}
-	_, _, imgName, fullPath, err = NewApiImgsTempService().SaveImage(req, userId)
+	imgId, _, imgName, fullPath, err = NewApiImgsTempService().SaveImage(req, userId)
 	if err != nil {
-		return resourceId, fullPath, imgName, fileName, err
+		return resourceId, imgId, fullPath, imgName, fileName, err
 	}
-	return resourceId, fullPath, imgName, fileName, nil
+	return resourceId, imgId, fullPath, imgName, fileName, nil
 }
 
 // 保存草稿
@@ -238,6 +238,8 @@ func (ser *apiArticleService) SaveArticle(userId uint64, req models.Article) (ar
 	if err != nil {
 		return article, err
 	}
+	// 转义文章封面图片到正式表
+	_ = NewApiImgsTempService().move2ArticleCoverImg(article.CoverUrl)
 	return article, nil
 }
 

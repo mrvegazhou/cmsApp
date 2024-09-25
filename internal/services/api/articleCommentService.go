@@ -135,8 +135,7 @@ func (ser *apiArticleCommentService) SaveArticleReply(userId uint64, req models.
 		if err != nil {
 			return reply, errors.New(constant.ARTICLE_REPLY_COMMENT_ID_ERR)
 		}
-		reply.ToReplyContent = commentInfo.Content
-
+		reply.ToReplyContent = ""
 		replyModel.ArticleId = commentInfo.ArticleId
 		replyModel.CommentId = commentInfo.Id
 		replyModel.LikeCount = 0
@@ -158,7 +157,6 @@ func (ser *apiArticleCommentService) SaveArticleReply(userId uint64, req models.
 			return reply, errors.New(constant.ARTICLE_REPLY_COMMENT_ID_ERR)
 		}
 		reply.ToReplyContent = replyInfo.Content
-
 		replyModel.ArticleId = replyInfo.ArticleId
 		replyModel.CommentId = replyInfo.CommentId
 		replyModel.ReplyId = replyInfo.Id
@@ -241,10 +239,10 @@ func (ser *apiArticleCommentService) GetCommentList(req models.ArticleCommentLis
 	}
 
 	var orderBy string
-	if req.OrderBy == "" {
-		orderBy = "create_time desc"
-	} else {
+	if req.OrderBy == "score" {
 		orderBy = fmt.Sprintf("%s desc, id desc", req.OrderBy)
+	} else {
+		orderBy = "create_time desc"
 	}
 
 	if !timex.IsValidTimestamp(req.CurrentTime) {
@@ -255,7 +253,7 @@ func (ser *apiArticleCommentService) GetCommentList(req models.ArticleCommentLis
 	conditions := map[string][]interface{}{
 		"article_id":  {"= ?", req.ArticleId},
 		"create_time": {"<= ?", pageTime},
-		"Status":      {"= ?", 1},
+		"status":      {"= ?", 1},
 	}
 
 	listComment, _, err := ser.Dao.GetArticleCommentListNoTotal(conditions, req.Page, constant.ARTICLE_COMMENT_PAGE_SIZE, orderBy)
@@ -357,52 +355,38 @@ func (ser *apiArticleCommentService) GetRecentReplies(commentMap map[uint64]mode
 }
 
 // 获取评论的回复列表
-func (ser *apiArticleCommentService) GetReplyList(req models.ArticleReplyListPost) (listReplyWithContent models.ArticleReplyListResp, err error) {
+func (ser *apiArticleCommentService) GetReplyListByCommentId(req models.ArticleReplyListPost) (listReplyWithContent models.ArticleReplyListResp, err error) {
 	if &req.CommentId == nil {
 		return listReplyWithContent, errorx.NewCustomError(errorx.HTTP_BIND_PARAMS_ERR, constant.ARTICLE_REPLY_COMMENT_ID_ERR)
 	}
-	seconds := req.CurrentTime / 1000
-	if !timex.IsValidTimestamp(seconds) {
-		return listReplyWithContent, errorx.NewCustomError(errorx.HTTP_BIND_PARAMS_ERR, constant.ARTICLE_COMMENT_PAGE_ERR)
+
+	if !timex.IsValidTimestamp(req.CurrentTime) {
+		return listReplyWithContent, errorx.NewCustomError(errorx.HTTP_BIND_PARAMS_ERR, constant.ARTICLE_COMMENT_CURRENT_TIME_ERR)
 	}
-	pageTime := time.Unix(seconds, 0)
+	pageTime := time.Unix(req.CurrentTime, 0)
 
 	var orderBy string
-	if req.OrderBy == "" {
-		orderBy = "create_time desc"
-	} else {
+	if req.OrderBy == "score" {
 		orderBy = fmt.Sprintf("%s desc, id desc", req.OrderBy)
+	} else {
+		orderBy = "create_time desc"
+	}
+
+	// 获取评论详情
+	commentModel, err := ser.Dao.GetArticleComment(map[string]interface{}{
+		"id": req.CommentId,
+	})
+	if err != nil {
+		return listReplyWithContent, errorx.NewCustomError(errorx.HTTP_BIND_PARAMS_ERR, constant.ARTICLE_REPLY_COMMENT_ID_ERR)
 	}
 
 	// 获取父级帖子的评论总数
-	var count uint
-	var conditions map[string][]interface{}
-	if req.ReplyId != 0 {
-		replyInfo, err := ser.ArticleReplyDao.GetArticleReply(map[string]interface{}{
-			"id": req.ReplyId,
-		})
-		if err != nil {
-			return listReplyWithContent, errorx.NewCustomError(errorx.HTTP_BIND_PARAMS_ERR, constant.ARTICLE_REPLY_ID_ERR)
-		}
-		count = replyInfo.ReplyCount
-		conditions = map[string][]interface{}{
-			"reply_id":    {"= ?", req.ReplyId},
-			"create_time": {"<= ?", pageTime},
-			"Status":      {"= ?", 1},
-		}
-	} else {
-		commentInfo, err := ser.Dao.GetArticleComment(map[string]interface{}{
-			"id": req.CommentId,
-		})
-		if err != nil {
-			return listReplyWithContent, errorx.NewCustomError(errorx.HTTP_BIND_PARAMS_ERR, constant.ARTICLE_REPLY_COMMENT_ID_ERR)
-		}
-		count = commentInfo.ReplyCount
-		conditions = map[string][]interface{}{
-			"comment_id":  {"= ?", req.CommentId},
-			"create_time": {"<= ?", pageTime},
-			"Status":      {"= ?", 1},
-		}
+	count := commentModel.ReplyCount
+
+	conditions := map[string][]interface{}{
+		"comment_id":  {"= ?", req.CommentId},
+		"create_time": {"<= ?", pageTime},
+		"status":      {"= ?", 1},
 	}
 	listReplyWithContent.HasNext = false
 	offset := (req.Page - 1) * constant.ARTICLE_COMMENT_PAGE_SIZE
@@ -413,6 +397,9 @@ func (ser *apiArticleCommentService) GetReplyList(req models.ArticleReplyListPos
 	listReply, err := ser.ArticleReplyDao.GetArticleReplyListNoTotal(conditions, req.Page, constant.ARTICLE_COMMENT_PAGE_SIZE, orderBy)
 
 	var userIds []uint64
+	// 把评论的用户也放进去
+	userIds = append(userIds, commentModel.UserId)
+
 	var pReplyIds []uint64
 	for _, reply := range listReply {
 		userIds = append(userIds, reply.ToUid, reply.FromUid)
@@ -441,7 +428,14 @@ func (ser *apiArticleCommentService) GetReplyList(req models.ArticleReplyListPos
 		model.FromUser = userMap[reply.FromUid]
 		list = append(list, model)
 	}
-	listReplyWithContent.ReplyList = list
+
+	// 返回评论详情
+	commentInfo := models.ArticleCommentWithUserInfo{}
+	copier.CopyWithOption(&commentInfo, commentModel, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+	commentInfo.UserInfo = userMap[commentModel.UserId]
+
+	listReplyWithContent.Comment = commentInfo
+	listReplyWithContent.Replies = list
 	listReplyWithContent.CurrentTime = req.CurrentTime
 	listReplyWithContent.Page = req.Page
 	return

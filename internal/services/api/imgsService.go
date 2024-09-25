@@ -131,11 +131,11 @@ func (ser *apiImgsService) DeleteImage(name string) (err error) {
 	return
 }
 
-func (ser *apiImgsService) UploadImage(req models.AppImgTempUploadReq, userId uint64) (resourceId uint64, fullPath string, imgName string, fileName string, err error) {
+func (ser *apiImgsService) UploadImage(req models.AppImgTempUploadReq, userId uint64) (imgId, resourceId uint64, fullPath string, imgName string, fileName string, err error) {
 	fileName = req.File.Filename
 	resourceId = cast.ToUint64(req.ResourceId)
 
-	_, _, imgName, fullPath, err = NewApiImgsService().SaveImage(req, userId)
+	imgId, _, imgName, fullPath, err = NewApiImgsTempService().SaveImage(req, userId)
 	return
 }
 

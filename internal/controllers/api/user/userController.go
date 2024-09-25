@@ -1,6 +1,7 @@
 package user
 
 import (
+	"cmsApp/internal/constant"
 	"cmsApp/internal/controllers/api"
 	"cmsApp/internal/middleware"
 	"cmsApp/internal/models"
@@ -54,12 +55,13 @@ func (apicon userController) searchName(c *gin.Context) {
 		apicon.Error(c, err, nil)
 		return
 	}
-	userList, page, totalPage, err := apiservice.NewApiUserService().SearchUserList(req.Name, req.Page, 5)
+	userList, page, totalPage, hasNextPage, err := apiservice.NewApiUserService().SearchUserList(req.Name, req.Page, constant.USERS_PAGE_SIZE, false)
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return
 	}
-	apicon.Success(c, map[string]interface{}{"userList": userList, "page": page, "totalPage": totalPage})
+
+	apicon.Success(c, map[string]interface{}{"userList": userList, "page": page, "totalPage": totalPage, "hasNextPage": hasNextPage})
 }
 
 func (apicon userController) search(c *gin.Context) {

@@ -37,10 +37,46 @@ func NewApiImgsTempService() *apiImgsTempService {
 	return instanceApiImgsTempService
 }
 
+// 转移封面图片到正式图片表
+func (ser *apiImgsTempService) move2ArticleCoverImg(imgName string) error {
+	condition := map[string]interface{}{
+		"name": imgName,
+		"type": 2,
+	}
+	imgInfo, err := ser.Dao.GetImgInfo(condition)
+	if err != nil {
+		filePath, err := NewApiImgsService().GetImageDirs(imgName)
+		if err == nil {
+			flag, _ := filesystem.FileExists(filePath)
+			if flag {
+				os.Remove(filePath)
+				// 判断文件夹是否为空
+				dirPath := filepath.Dir(filePath)
+				notNullPath, _ := filesystem.IsDirEmpty(dirPath)
+				if notNullPath {
+					os.Remove(dirPath)
+				}
+			}
+		}
+		return errors.New(constant.ARTICLE_SAVE_COVER_IMG_ERR)
+	}
+	// 保存进图片表
+	imgModel := models.Imgs{}
+	copier.CopyWithOption(&imgModel, imgInfo, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+	_, err = ser.ImgDao.CreateImage(imgModel)
+	if err != nil {
+		return errors.New(constant.ARTICLE_SAVE_COVER_IMG_ERR)
+	}
+	// 删除tmp中图片数据
+	ser.DeleteImage(imgInfo.Id)
+	return nil
+}
+
 // 从临时图片表转移到文章图片表
 func (ser *apiImgsTempService) move2ArticleImgs(imgNames []string, resourceId uint64) error {
 	conditions := map[string][]interface{}{
 		"resource_id": {"= ?", resourceId},
+		"type":        {"= ?", 1}, // 文章类型
 	}
 	imgs, err := ser.Dao.GetImgs(conditions)
 	if err == nil {
@@ -52,7 +88,6 @@ func (ser *apiImgsTempService) move2ArticleImgs(imgNames []string, resourceId ui
 				if imgName == img.Name {
 					temp := models.ImgsTempFields{}
 					err := copier.Copy(&temp, &img)
-					fmt.Println(err, img, temp, "--temp--")
 					if err == nil {
 						foundImgs = append(foundImgs, temp)
 					}
@@ -103,7 +138,7 @@ func (ser *apiImgsTempService) move2ArticleImgs(imgNames []string, resourceId ui
 func (ser *apiImgsTempService) DeleteImage(resourceId uint64) (err error) {
 	conds := make(map[string][]interface{})
 	conds["resource_id"] = []interface{}{"=?", resourceId}
-	err = ser.Dao.DeleteImage(conds)
+	_, err = ser.Dao.DeleteImage(conds)
 	return
 }
 
@@ -113,7 +148,7 @@ func (ser *apiImgsTempService) DeleteImages(names []string) (err error) {
 	}
 	conds := make(map[string][]interface{})
 	conds["name"] = []interface{}{"in (?)", names}
-	err = ser.Dao.DeleteImage(conds)
+	_, err = ser.Dao.DeleteImage(conds)
 	return
 }
 
@@ -178,6 +213,23 @@ func (ser *apiImgsTempService) SaveImage(imgReq models.AppImgTempUploadReq, user
 	return imgId, pathStr, imageName, fullPath, nil
 }
 
-func (ser *apiImgsTempService) DeleteImageInfo(uid uint64, name string) (bool, error) {
-	return
+func (ser *apiImgsTempService) DeleteImageById(uid, imgId uint64, imgName string) error {
+
+	conds := make(map[string][]interface{})
+	conds["id"] = []interface{}{"=?", imgId}
+	conds["user_id"] = []interface{}{"=?", uid}
+	conds["name"] = []interface{}{"=?", imgName}
+	rowsAffected, err := ser.Dao.DeleteImage(conds)
+	if err != nil {
+		return errors.New(constant.DEL_IMAGE_ERR)
+	}
+	// 删除文件
+	filePath, err := NewApiImgsService().GetImageDirs(imgName)
+	fmt.Println(rowsAffected, filePath, uid, imgId, imgName, "----filePath img----")
+	if err != nil {
+		return errors.New(constant.DEL_IMAGE_ERR)
+	}
+	stor := uploader.LocalStorage{}
+	stor.RomoveFile(filePath)
+	return nil
 }

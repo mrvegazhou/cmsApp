@@ -5,7 +5,6 @@ import (
 	"cmsApp/internal/controllers"
 	"cmsApp/pkg/cors"
 	"cmsApp/pkg/utils/stringx"
-	"cmsApp/pkg/validator"
 	"cmsApp/web"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -28,8 +27,6 @@ func Cors() gin.HandlerFunc {
 func Init() (*Router, error) {
 
 	router := NewRouter(gin.Default())
-
-	validator.InitCustomValidator("zh")
 
 	//设置404错误处理
 	router.SetRouteError(controllers.NewHandleController().Handle)

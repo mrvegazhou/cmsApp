@@ -54,12 +54,12 @@ func (dao *ImgsTempDao) GetImgs(conditions map[string][]interface{}) ([]models.I
 	return imgs, nil
 }
 
-func (dao *ImgsTempDao) DeleteImage(conditions map[string][]interface{}) error {
+func (dao *ImgsTempDao) DeleteImage(conditions map[string][]interface{}) (int64, error) {
 	Db := dao.DB
 	Db = dao.BaseDao.ConditionWhere(Db, conditions, models.ImgsFields{})
-	err := Db.Delete(&models.ImgsTemp{}).Error
-	if err != nil {
-		return err
+	res := Db.Delete(&models.ImgsTemp{})
+	if res.Error != nil {
+		return 0, res.Error
 	}
-	return nil
+	return res.RowsAffected, nil
 }

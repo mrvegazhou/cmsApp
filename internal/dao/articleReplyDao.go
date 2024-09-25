@@ -87,7 +87,7 @@ func (dao *AppArticleReplyDao) GetArticleReplyListNoTotal(conditions map[string]
 	if orderBy == "" {
 		orderBy = "create_time"
 	}
-	orderBy = fmt.Sprintf("%s desc", orderBy)
+	orderBy = fmt.Sprintf("%s", orderBy)
 
 	Db = Db.Scopes(dao.Order(orderBy)).Offset(offset).Limit(pageSizeParam)
 	if err := Db.Find(&replies).Error; err != nil {

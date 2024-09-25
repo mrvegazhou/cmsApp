@@ -50,6 +50,7 @@ const (
 	ARTICLE_AUTHOR_ERR               = "文章作者缺失"
 	ARTICLE_CHECK_LIKE_ERR           = "检查是否点赞失败"
 	ARTICLE_DRAFT_HISTORY_ERR        = "文章保存到历史记录失败"
+	ARTICLE_SAVE_COVER_IMG_ERR       = "保存文章封面图片失败"
 
 	ARTICLE_DARFT_PARAM_ERR = "获取文章历史编辑参数错误"
 
@@ -71,7 +72,7 @@ const (
 	GET_CURRENT_PATH_ERR       = "获取当前路径失败"
 	IMAGE_UPLOAD_ERR           = "上传图片失败"
 	SAVE_IMAGE_ERR             = "保存图片失败"
-	DEL_IMAGE_ERR              = "删除临时图片失败"
+	DEL_IMAGE_ERR              = "删除图片失败"
 	UPLOAD_DIR_ERR             = "获取上传路径失败"
 	UPLOAD_EXCEED_ERR          = "一天内只能上传50次"
 	FILE_PERMISSION_ERR        = "没有权限操作文件"

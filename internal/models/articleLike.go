@@ -15,7 +15,7 @@ type AppArticleLike struct {
 }
 
 type AppArticleLikeReq struct {
-	ArticleId uint64 `form:"article_id" binding:"required" label:"文章标识" json:"articleId"`
+	ArticleId uint64 `form:"articleId" binding:"required" label:"文章标识" json:"articleId"`
 }
 
 type AppArticleToolBarDataResp struct {

@@ -25,7 +25,6 @@ func (con commentController) Routes(rg *gin.RouterGroup) {
 	rg.POST("/save/reply", middleware.JwtAuth(), con.saveReply)
 	rg.POST("/comment/list", con.commentList)
 	rg.POST("/reply/list", con.replyList)
-	rg.POST("/comment/report", middleware.JwtAuth(), con.reportComment)
 }
 
 // 保存文章评论
@@ -125,23 +124,27 @@ func (apicon commentController) replyList(c *gin.Context) {
 		apicon.Error(c, err, nil)
 		return
 	}
-	replyResp, err := apiservice.NewApiArticleCommentService().GetReplyList(req)
+
+	if &req.CurrentTime == nil {
+		req.CurrentTime = time.Now().Unix()
+	} else {
+		if len(cast.ToString(req.CurrentTime)) == 10 {
+
+		} else if len(cast.ToString(req.CurrentTime)) == 13 {
+			req.CurrentTime = req.CurrentTime / 1000
+		} else {
+			apicon.Error(c, errors.New(constant.ARTICLE_COMMENT_CURRENT_TIME_ERR), nil)
+			return
+		}
+	}
+	if &req.OrderBy == nil {
+		req.OrderBy = "score"
+	}
+
+	replyResp, err := apiservice.NewApiArticleCommentService().GetReplyListByCommentId(req)
 	if err != nil {
 		apicon.Error(c, err, nil)
 		return
 	}
 	apicon.Success(c, replyResp)
-}
-
-func (apicon commentController) reportComment(c *gin.Context) {
-	var (
-		err error
-		req models.ArticleCommentReportReq
-	)
-	err = apicon.FormBind(c, &req)
-	if err != nil {
-		apicon.Error(c, err, nil)
-		return
-	}
-	apiservice.NewApiArticleCommentService().HandleReport(req)
 }

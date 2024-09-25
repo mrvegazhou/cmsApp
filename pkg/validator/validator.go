@@ -1,5 +1,7 @@
 package validator
 
+//https://github.com/Harsh-Katiyar/JetBrains-products-Activation-code-until-13-Dec-2024
+//https://github.com/Naimul007A/jetbrains
 import (
 	"cmsApp/internal/constant"
 	"cmsApp/pkg/utils/regexpx"
@@ -17,79 +19,86 @@ import (
 )
 
 var isPassword validator.Func = func(fl validator.FieldLevel) bool {
-	data, ok := fl.Field().Interface().(string)
-	if ok {
-		return regexpx.RegPassword(data)
-	}
-	return true
+	return regexpx.RegPassword(fl.Field().String())
 }
 
-func InitCustomValidator(locale string) {
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("isPassword", isPassword)
-	}
+var CustomTranslator ut.Translator
+var once sync.Once
 
+func registerTagNameJSON(validate *validator.Validate) {
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("label"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
 }
 
-var (
-	trans    ut.Translator
-	once     sync.Once
-	validate *validator.Validate
-)
-
-func customZhTrans(v *validator.Validate, trans ut.Translator) {
-	var data map[string]string = map[string]string{
-		"isPassword": constant.IS_PASSWORD_ERR,
+func registerTranslator(locale string, validate *validator.Validate) {
+	zhT := zh.New()
+	enT := en.New()
+	uni := ut.New(enT, zhT, enT)
+	found := false
+	CustomTranslator, found = uni.GetTranslator(locale)
+	if !found {
+		fmt.Println("translator not found")
+		panic(found)
 	}
-	for key, val := range data {
-		//自定义translate与我们的自定义validator配合使用（其实这里也需要把validator与translator进行绑定，v与global.Trans）
-		v.RegisterTranslation(key, trans, func(ut ut.Translator) error {
-			//自定义失败信息
-			return ut.Add(key, val, true) // see universal-translator for details
-		}, func(ut ut.Translator, fe validator.FieldError) string {
-			t, _ := ut.T(key, fe.Field())
-			return t
-		})
-	}
-}
-
-func InitTrans(locale string) (ut.Translator, error) {
-	var trans ut.Translator
+	// 注册翻译器
 	var err error
-	// 修改gin框架中的Validator引擎属性，实现自定制
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-			name := strings.SplitN(fld.Tag.Get("label"), ",", 2)[0]
-			fmt.Println(name, "----name-----")
-			if name == "-" {
-				return ""
-			}
-			return name
-		})
-
-		zhT := zh.New()
-		enT := en.New()
-		uni := ut.New(enT, zhT, enT)
-
-		var ok bool
-		trans, ok = uni.GetTranslator(locale)
-		if !ok {
-			err = fmt.Errorf("uni.GetTranslator(%s) failed", locale)
-			return nil, err
-		} else {
-			customZhTrans(v, trans)
-		}
-
-		// 注册翻译器
-		switch locale {
-		case "en":
-			err = enTranslations.RegisterDefaultTranslations(v, trans)
-		case "zh":
-			err = zhTranslations.RegisterDefaultTranslations(v, trans)
-		default:
-			err = enTranslations.RegisterDefaultTranslations(v, trans)
-		}
-		return trans, err
+	switch locale {
+	case "en":
+		err = enTranslations.RegisterDefaultTranslations(validate, CustomTranslator)
+	case "zh":
+		err = zhTranslations.RegisterDefaultTranslations(validate, CustomTranslator)
+	default:
+		err = enTranslations.RegisterDefaultTranslations(validate, CustomTranslator)
 	}
-	return trans, nil
+	if err != nil {
+		panic((err).Error())
+	}
+}
+
+func registerCustomsValidation(validate *validator.Validate) error {
+	var data map[string][2]interface{} = map[string][2]interface{}{
+		"isPassword": [2]interface{}{constant.IS_PASSWORD_ERR, isPassword},
+	}
+
+	// 在校验器注册自定义的校验方法
+	for key, val := range data {
+		err := validate.RegisterValidation(key, val[1].(validator.Func))
+		if err != nil {
+			return err
+		}
+		if err = validate.RegisterTranslation(key, CustomTranslator, func(trans ut.Translator) error { // registerTranslator 为自定义字段添加翻译功能
+			if err := trans.Add(key, val[0].(string), false); err != nil {
+				return err
+			}
+			return nil
+		}, func(trans ut.Translator, fe validator.FieldError) string { // translate 自定义字段的翻译方法
+			msg, err := trans.T(fe.Tag(), fe.Field())
+			if err != nil {
+				panic(fe.(error).Error())
+			}
+			return msg
+
+		}); err != nil {
+			panic((err).Error())
+			return err
+		}
+	}
+	return nil
+}
+
+func InitTrans(locale string) error {
+
+	once.Do(func() {
+		validate := binding.Validator.Engine().(*validator.Validate)
+		registerTagNameJSON(validate)
+		registerTranslator(locale, validate)
+		_ = registerCustomsValidation(validate)
+	})
+
+	return nil
 }

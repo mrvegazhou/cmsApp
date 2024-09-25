@@ -4,10 +4,13 @@ import (
 	"cmsApp/internal/errorx"
 	gvalidator "cmsApp/pkg/validator"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	perrors "github.com/pkg/errors"
 	"net/http"
+	"reflect"
+	"strings"
 )
 
 type BaseController struct {
@@ -63,20 +66,38 @@ func (Base BaseController) Error(c *gin.Context, err error, data interface{}) {
 
 func (Base BaseController) FormBind(c *gin.Context, obj interface{}) error {
 
-	trans, err := gvalidator.InitTrans("zh")
-	if err != nil {
-		return err
-	}
+	gvalidator.InitTrans("zh")
 
 	if err := c.ShouldBind(obj); err != nil {
 		errs, ok := err.(validator.ValidationErrors)
 		if !ok && errs != nil {
 			return errs
 		}
-		for _, v := range errs.Translate(trans) {
+		for _, v := range errs.Translate(gvalidator.CustomTranslator) {
 			return errors.New(v)
 		}
+		//return GetValidateErr(obj, err)
 		return err
 	}
 	return nil
+}
+
+// Age  int `json:"age" binding:"BodyAgeValidate" err:"only 18"` 定义一个err错误提示
+func GetValidateErr(obj any, rawErr error) error {
+	validationErrs, ok := rawErr.(validator.ValidationErrors)
+	if !ok {
+		return rawErr
+	}
+	var errString []string
+	for _, validationErr := range validationErrs {
+		field, ok := reflect.TypeOf(obj).FieldByName(validationErr.Field())
+		if ok {
+			if e := field.Tag.Get("err"); e != "" {
+				errString = append(errString, fmt.Sprintf("%s: %s", validationErr.Namespace(), e))
+				continue
+			}
+		}
+		errString = append(errString, validationErr.Error())
+	}
+	return errors.New(strings.Join(errString, "\n"))
 }

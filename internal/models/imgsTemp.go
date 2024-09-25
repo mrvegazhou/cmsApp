@@ -46,5 +46,6 @@ type AppImgTempUploadReq struct {
 }
 
 type AppImgTempDeleteReq struct {
-	fileName string `json:"fileName" form:"fileName" binding:"required" label:"文件名称"`
+	Id      uint64 `json:"id" form:"id" binding:"required" label:"文件ID"`
+	ImgName string `json:"imgName" form:"imgName" label:"文件名称"`
 }

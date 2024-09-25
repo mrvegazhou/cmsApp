@@ -51,14 +51,14 @@ type ArticleReplyPost struct {
 
 type ArticleReplyListPost struct {
 	CommentId   uint64 `json:"commentId" form:"commentId" label:"评论标识" binding:"required"`
-	ReplyId     uint64 `json:"replyId" form:"replyId" label:"回复标识"`
 	Page        int    `json:"page" form:"page" label:"分页标识"`
 	CurrentTime int64  `json:"currentTime" form:"currentTime" label:"时间标识"`
 	OrderBy     string `json:"orderBy" form:"orderBy" label:"排序"`
 }
 
 type ArticleReplyListResp struct {
-	ReplyList   []ArticleReplyWithUserAndToReplyContent `json:"replyList" label:"评论列表"`
+	Comment     ArticleCommentWithUserInfo              `json:"comment" label:"评论详情"`
+	Replies     []ArticleReplyWithUserAndToReplyContent `json:"replies" label:"回复列表"`
 	Page        int                                     `json:"page" label:"页码"`
 	HasNext     bool                                    `json:"hasNext" label:"是否有数据"`
 	CurrentTime int64                                   `json:"currentTime" form:"currentTime" label:"时间标识"`
